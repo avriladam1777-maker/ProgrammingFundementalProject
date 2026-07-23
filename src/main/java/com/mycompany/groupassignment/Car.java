@@ -20,6 +20,26 @@ public class Car extends Vehicle {
         this.transmissionType = transmissionType;
     }
     
+    public int getNumDoor(){
+        return this.numDoor;
+    }
+    
+    public void setNumDoor(int newDoors){
+        if(newDoors >= 2 && newDoors <= 6){
+            this.numDoor = newDoors;
+        }else{
+            System.out.println("Invalid number of doors.");
+        }
+    }
+    
+    public String getTransmissionType(){
+        return this.transmissionType;
+    }
+    
+    public void setTransmissionType(String newType){
+        this.transmissionType = newType;
+    }
+    
     public void displayDetails(){
         System.out.printf("\nBrand:%25s", getBrand());
         System.out.printf("\nModel:%25s", getModel());
