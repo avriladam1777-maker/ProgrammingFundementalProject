@@ -5,7 +5,7 @@
 package com.mycompany.groupassignment;
 
 /**
- *
+ *poop
  * @author User
  */
 public class GroupAssignment {
