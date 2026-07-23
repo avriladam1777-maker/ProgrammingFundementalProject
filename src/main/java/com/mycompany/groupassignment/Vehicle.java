@@ -86,7 +86,7 @@ public class Vehicle {
         System.out.printf("\nBrand:%25s", brand);
         System.out.printf("\nModel:%25s", model);
         System.out.printf("\nImage Path:%19s", imagePath);
-        System.out.printf("\nPrice:%25s", vehicleID);
+        System.out.printf("\nPrice:%25.2f", price);
         if(isAvailable == true){
             System.out.printf("\nState:%25s", "Available");
         }else{
