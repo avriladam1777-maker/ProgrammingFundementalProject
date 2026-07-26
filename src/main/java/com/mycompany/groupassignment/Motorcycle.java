@@ -9,17 +9,15 @@ package com.mycompany.groupassignment;
  * @author User
  */
 public class Motorcycle extends Vehicle{
-    private int engineCC;
+    public int engineCC;
+    public String mileage;
     
     public Motorcycle(String vehicleID, String brand, String model,
-            String imagePath, double price, int engineCC)
+            String imagePath, double price, int engineCC, String mileage)
         {
         super(vehicleID, brand, model, imagePath, price);
         this.engineCC = engineCC;
-    }
-    
-    public int getEngineCC(){
-        return this.engineCC;
+        this.mileage = mileage;
     }
     
     public void setEngineCC(int newCC){
@@ -37,6 +35,7 @@ public class Motorcycle extends Vehicle{
         }
     }
     
+    @Override
     public void displayDetails(){
         System.out.printf("\nBrand:%25s", getBrand());
         System.out.printf("\nModel:%25s", getModel());

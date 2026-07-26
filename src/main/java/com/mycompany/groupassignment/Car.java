@@ -9,19 +9,17 @@ package com.mycompany.groupassignment;
  * @author User
  */
 public class Car extends Vehicle {
-    private int numDoor;
-    private String transmissionType;
+    public int numDoor;
+    public String mileage;
+    public String transmissionType;
         
     public Car(String vehicleID, String brand, String model, String imagePath,
-            double price, int numDoor, String transmissionType)
+            double price, int numDoor, String transmissionType, String mileage)
         {
         super(vehicleID, brand, model, imagePath, price);
         this.numDoor = numDoor;
+        this.mileage = mileage;
         this.transmissionType = transmissionType;
-    }
-    
-    public int getNumDoor(){
-        return this.numDoor;
     }
     
     public void setNumDoor(int newDoors){
@@ -32,14 +30,7 @@ public class Car extends Vehicle {
         }
     }
     
-    public String getTransmissionType(){
-        return this.transmissionType;
-    }
-    
-    public void setTransmissionType(String newType){
-        this.transmissionType = newType;
-    }
-    
+    @Override
     public void displayDetails(){
         System.out.printf("\nBrand:%25s", getBrand());
         System.out.printf("\nModel:%25s", getModel());

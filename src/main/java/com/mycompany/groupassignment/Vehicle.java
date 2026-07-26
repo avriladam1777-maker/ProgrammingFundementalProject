@@ -81,6 +81,10 @@ public class Vehicle {
         
     }
     
+    public double getAverageRating(){//(take rating from review class and make it average)
+        return 0.0;
+    }
+    
     public void displayDetails(){
         System.out.printf("\nVehicleID:%20s", vehicleID);
         System.out.printf("\nBrand:%25s", brand);
