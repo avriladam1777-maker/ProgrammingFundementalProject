@@ -17,16 +17,16 @@ public class Car extends Vehicle {
             boolean isAvailable, int numDoors, String transmissionType, int mileage)
         {
         super(vehicleID, brand, model, imagePath, price, isAvailable);
-        this.numDoors = numDoors;
+        setNumDoors(numDoors);
         this.mileage = mileage;
         this.transmissionType = transmissionType;
     }
     
-    public void setNumDoor(int newDoors){
+    public void setNumDoors(int newDoors){
         if(newDoors >= 2 && newDoors <= 6){
             this.numDoors = newDoors;
         }else{
-            System.out.println("Invalid number of doors.");
+            System.out.println("Invalid number of doors.");//dont forgot to change this to String.format in the future
         }
     }
     
