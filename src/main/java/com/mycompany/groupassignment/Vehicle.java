@@ -8,7 +8,9 @@ package com.mycompany.groupassignment;
  *
  * @author User
  */
-public class Vehicle {
+import java.util.List;
+import java.util.ArrayList;
+public abstract class Vehicle {
     private String vehicleID;
     private String brand;
     private String model;
@@ -16,17 +18,23 @@ public class Vehicle {
     private double price;
     private boolean isAvailable;
     
-    public Vehicle(String vehicleID, String brand, String model, String imagePath, double price){
+    // not in UML — required by addReview()/getAverageRating()
+    private List<Review> reviews;
+    
+    public Vehicle(String vehicleID, String brand, String model, 
+            String imagePath, double price, boolean isAvailable)
+        {
         this.vehicleID = vehicleID;
         this.brand = brand;
         this.model = model;
         this.imagePath = imagePath;
         this.price = price;
-        this.isAvailable = false;
+        this.isAvailable = isAvailable;
+        this.reviews = new ArrayList<>();
     }
     
     public String getVehicleID(){
-        return this.vehicleID;
+        return vehicleID;
     }
     
     public void setVehicleID(String newVehicleID){
@@ -34,7 +42,7 @@ public class Vehicle {
     }
     
     public String getBrand(){
-        return this.brand;
+        return brand;
     }
     
     public void setBrand(String newBrand){
@@ -42,7 +50,7 @@ public class Vehicle {
     }
     
     public String getModel(){
-        return this.model;
+        return model;
     }
     
     public void setModel(String newModel){
@@ -50,7 +58,7 @@ public class Vehicle {
     }
     
     public String getImagePath(){
-        return this.imagePath;
+        return imagePath;
     }
     
     public void setImagePath(String newImagePath){
@@ -58,7 +66,7 @@ public class Vehicle {
     }
     
     public boolean getIsAvailable(){
-        return this.isAvailable;
+        return isAvailable;
     }
     
     public void setIsAvailable(boolean isAvailable){
@@ -66,7 +74,7 @@ public class Vehicle {
     }
     
     public double getPrice(){
-        return this.price;
+        return price;
     }
     
     public void setPrice(double newPrice){
@@ -77,24 +85,20 @@ public class Vehicle {
         }
     }
     
-    public void addReview(){//(new Review() called?)
-        
+    public void addReview(Review review){//(new Review() called?)
+        reviews.add(review);
     }
     
     public double getAverageRating(){//(take rating from review class and make it average)
-        return 0.0;
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        int total = 0;
+        for (Review r : reviews) {
+            total += r.getRating();
+        }
+        return (double) total / reviews.size();
     }
     
-    public void displayDetails(){
-        System.out.printf("\nVehicleID:%20s", vehicleID);
-        System.out.printf("\nBrand:%25s", brand);
-        System.out.printf("\nModel:%25s", model);
-        System.out.printf("\nImage Path:%19s", imagePath);
-        System.out.printf("\nPrice:%25.2f", price);
-        if(isAvailable == true){
-            System.out.printf("\nState:%25s", "Available");
-        }else{
-            System.out.printf("\nState:%25s", "Not Available");
-        }
-    }
+    public abstract String displayDetails();
 }
