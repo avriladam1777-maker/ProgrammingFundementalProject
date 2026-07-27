@@ -61,8 +61,8 @@ public class Vehicle {
         return this.isAvailable;
     }
     
-    public void setIsAvailable(){
-        this.isAvailable = true;
+    public void setIsAvailable(boolean isAvailable){
+    this.isAvailable = isAvailable;
     }
     
     public double getPrice(){
