@@ -10,13 +10,13 @@ package com.mycompany.groupassignment;
  */
 public class Motorcycle extends Vehicle{
     public int engineCC;
-    public String mileage;
+    public int mileage;
     
-    public Motorcycle(String vehicleID, String brand, String model,
-            String imagePath, double price, int engineCC, String mileage)
+    public Motorcycle(String vehicleID, String brand, String model, String imagePath, 
+            double price, boolean isAvailable, int engineCC, int mileage)
         {
-        super(vehicleID, brand, model, imagePath, price);
-        this.engineCC = engineCC;
+        super(vehicleID, brand, model, imagePath, price, isAvailable);
+        setEngineCC(engineCC);
         this.mileage = mileage;
     }
     
@@ -24,7 +24,7 @@ public class Motorcycle extends Vehicle{
         if(newCC > 50 && newCC <= 2500){
             this.engineCC = newCC;
         } 
-        else if(newCC <= 50){
+        else if(newCC <= 50){//make sure this will throw an error when compiling later
             System.out.println("Invalid CC for the Motorcycle. Please increase the CC of the engine.");
         }
         else if(newCC > 2500){
@@ -36,15 +36,13 @@ public class Motorcycle extends Vehicle{
     }
     
     @Override
-    public void displayDetails(){
-        System.out.printf("\nBrand:%25s", getBrand());
-        System.out.printf("\nModel:%25s", getModel());
-        System.out.printf("\nCC of Engine:%13s", engineCC);
-        System.out.printf("\nPrice:%25s", getPrice());
+    public String displayDetails(){
         if(getIsAvailable() == true){
-            System.out.printf("\nState:%25s", "Available");
+            return String.format("\nBrand:%25s\nModel:%25s\nEngine CC:%16d\nMileage:%23d\nPrice:%25.2f"
+                    + "\nState:%25s", getBrand(),getModel(), engineCC, mileage, getPrice(), "Available");
         }else{
-            System.out.printf("\nState:%25s", "Not Available");
+            return String.format("\nBrand:%25s\nModel:%25s\nEngine CC:%16d\nMileage:%23d\nPrice:%25.2f"
+                    + "\nState:%25s", getBrand(),getModel(), engineCC, mileage, getPrice(), "Not Available");
         }
     }
 }
