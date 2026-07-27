@@ -45,6 +45,16 @@ public class Booking {
         }
     }
     
+    
+    // Fuctional methods:
+    public double calculateTotalCost() {
+        return vehicle.getPrice() * rentalDurationDays;
+    }
+    
+    public boolean isActive() {
+        return !"CANCELLED".equals(status);
+    }
+    
     // Getters / Setters:
     
     public void setBookingToken(String bookingToken) {
@@ -79,7 +89,7 @@ public class Booking {
         return status;
     }
 
-    // No setCustomer()/setVehicle() - by design, see class Javadoc above.
+    // No setCustomer()/setVehicle()
     public User getCustomer() {
         return customer;
     }
