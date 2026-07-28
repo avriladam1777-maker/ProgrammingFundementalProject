@@ -9,7 +9,7 @@ package com.mycompany.groupassignment;
  * @author User
  */
 public class Car extends Vehicle {
-    public int numDoors;
+    private int numDoors;
     public int mileage;
     public String transmissionType;
         
@@ -17,7 +17,7 @@ public class Car extends Vehicle {
             boolean isAvailable, int numDoors, String transmissionType, int mileage)
         {
         super(vehicleID, brand, model, imagePath, price, isAvailable);
-        setNumDoors(numDoors);
+        this.numDoors = numDoors;
         this.mileage = mileage;
         this.transmissionType = transmissionType;
     }
@@ -30,6 +30,10 @@ public class Car extends Vehicle {
         }
     }
     
+    public int getNumDoors(){
+        return numDoors;
+    }
+            
     @Override
     public String displayDetails(){
         if(getIsAvailable() == true){

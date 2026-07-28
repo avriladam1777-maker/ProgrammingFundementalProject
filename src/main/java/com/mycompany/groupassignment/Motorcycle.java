@@ -9,14 +9,14 @@ package com.mycompany.groupassignment;
  * @author User
  */
 public class Motorcycle extends Vehicle{
-    public int engineCC;
+    private int engineCC;
     public int mileage;
     
     public Motorcycle(String vehicleID, String brand, String model, String imagePath, 
             double price, boolean isAvailable, int engineCC, int mileage)
         {
         super(vehicleID, brand, model, imagePath, price, isAvailable);
-        setEngineCC(engineCC);
+        this.engineCC = engineCC;
         this.mileage = mileage;
     }
     
@@ -33,6 +33,10 @@ public class Motorcycle extends Vehicle{
         else{
             System.out.println("Invalid CC for the Motorcycle. Please enter a valid number of CC.");
         }
+    }
+    
+    public int getEngineCC(){
+        return engineCC;
     }
     
     @Override
