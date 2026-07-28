@@ -89,6 +89,10 @@ public abstract class Vehicle {
         reviews.add(review);
     }
     
+    public List<Review> getReviews() {
+        return reviews;
+    }
+    
     public double getAverageRating(){//(take rating from review class and make it average)
         if (reviews.isEmpty()) {
             return 0.0;
