@@ -9,5 +9,7 @@ package com.mycompany.groupassignment;
  * @author User
  */
 public class VehicleServiceBookingSystem {
-    
+    public static void main(String[] args){
+        
+    }
 }
