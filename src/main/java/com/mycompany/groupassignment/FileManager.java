@@ -34,6 +34,14 @@ public class FileManager {
         this.userFile = "users.txt";
     }
     
+    public void saveAll(VehicleServiceBookingSystem system) {
+        saveVehicles(system.getVehicleList());
+        saveBookings(system.getBookingList());
+        saveAdmins(system.getAdminList());
+        saveAnnouncements(system.getAnnouncementList());
+        saveUsers(system.getUserList());
+    }
+    
     //-------------------------------- Vehicle Files -------------------------------------
     
     public void saveVehicles(List<Vehicle> vehicles){
@@ -44,13 +52,13 @@ public class FileManager {
                     Car c = (Car) v;
                     bw.write("CAR" + SEP_OUT + c.getVehicleID() + SEP_OUT + c.getBrand() + SEP_OUT
                             + c.getModel() + SEP_OUT + c.getImagePath() + SEP_OUT + c.getPrice() + SEP_OUT
-                            + c.getIsAvailable() + SEP_OUT + c.numDoors + SEP_OUT + c.transmissionType
+                            + c.getIsAvailable() + SEP_OUT + c.getNumDoors() + SEP_OUT + c.transmissionType
                             + SEP_OUT + c.mileage + SEP_OUT + reviewsBlock);
                 } else if (v instanceof Motorcycle) {
                     Motorcycle m = (Motorcycle) v;
                     bw.write("MOTO" + SEP_OUT + m.getVehicleID() + SEP_OUT + m.getBrand() + SEP_OUT
                             + m.getModel() + SEP_OUT + m.getImagePath() + SEP_OUT + m.getPrice() + SEP_OUT
-                            + m.getIsAvailable() + SEP_OUT + m.engineCC + SEP_OUT + m.mileage
+                            + m.getIsAvailable() + SEP_OUT + m.getEngineCC() + SEP_OUT + m.mileage
                             + SEP_OUT + reviewsBlock);
                 }
                 bw.newLine();
