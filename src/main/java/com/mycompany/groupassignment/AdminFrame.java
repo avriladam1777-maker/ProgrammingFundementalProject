@@ -8,6 +8,412 @@ package com.mycompany.groupassignment;
  *
  * @author User
  */
-public class AdminFrame {
-    
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+ 
+public class AdminFrame extends JFrame {
+ 
+    // Attributes (per UML):
+    private VehicleServiceBookingSystem system;
+    private Admin currentAdmin;
+    private FileManager fileManager;
+ 
+    // --- GUI components (not in UML - Swing plumbing) ---
+    private JLabel welcomeLabel;
+ 
+    // Vehicles tab
+    private JComboBox<String> vehicleTypeCombo;
+    private JTextField vehicleIdField;
+    private JTextField brandField;
+    private JTextField modelField;
+    private JTextField imagePathField;
+    private JTextField priceField;
+    private JCheckBox availableCheckBox;
+ 
+    private JTextField numDoorsField;
+    private JTextField transmissionField;
+    private JTextField carMileageField;
+ 
+    private JTextField engineCCField;
+    private JTextField motoMileageField;
+ 
+    private CardLayout typeCardLayout;
+    private JPanel typeCardPanel;
+ 
+    private JTable vehicleStatusTable;
+    private DefaultTableModel vehicleStatusTableModel;
+ 
+    // Bookings tab
+    private JTable bookingsTable;
+    private DefaultTableModel bookingsTableModel;
+ 
+    // Announcements tab
+    private JTextArea announcementField;
+    private JTextArea announcementListArea;
+ 
+    // Constructor:
+    // system and fileManager are handed in by MainMenuFrame - same rule
+    // every other class in this project follows.
+    public AdminFrame(VehicleServiceBookingSystem system, FileManager fileManager) {
+        this.system = system;
+        this.fileManager = fileManager;
+ 
+        setTitle("Vehicle Service Booking - Admin");
+        setSize(1000, 700);
+        setLocationRelativeTo(null);
+        // Decision locked in: unlike CustomerFrame, closing AdminFrame only
+        // ends the admin's session. MainMenuFrame is never hidden behind it
+        // (see MainMenuFrame.openAdminLogin()), so it's still there to
+        // return to - EXIT_ON_CLOSE would throw that away for no reason.
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+ 
+        this.currentAdmin = resolveCurrentAdmin();
+        if (this.currentAdmin == null) {
+            // Login was cancelled - nothing to show. Dispose immediately
+            // and hand control back to MainMenuFrame.
+            dispose();
+            return;
+        }
+ 
+        initComponents();
+        onViewVehicleStatus();
+        onViewBookings();
+        refreshAnnouncementList();
+    }
+ 
+    // ---------------------------------- Login -----------------------------------
+ 
+    private Admin resolveCurrentAdmin() {
+        while (true) {
+            JTextField usernameField = new JTextField();
+            JPasswordField passwordField = new JPasswordField();
+            Object[] message = {
+                "Username:", usernameField,
+                "Password:", passwordField
+            };
+            int option = JOptionPane.showConfirmDialog(this, message,
+                    "Admin Login", JOptionPane.OK_CANCEL_OPTION);
+            if (option != JOptionPane.OK_OPTION) {
+                return null; // admin backed out of the login dialog
+            }
+ 
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+            Admin admin = system.authenticateAdmin(username, password);
+ 
+            if (admin != null) {
+                JOptionPane.showMessageDialog(this, "Welcome, " + admin.getAdminUsername() + "!");
+                return admin;
+            }
+            JOptionPane.showMessageDialog(this, "Invalid credentials. Try again.");
+        }
+    }
+ 
+    // ---------------------------------- UI setup ---------------------------------
+ 
+    private void initComponents() {
+        setLayout(new BorderLayout(8, 8));
+ 
+        welcomeLabel = new JLabel("Logged in as: " + currentAdmin.getAdminUsername());
+        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(6, 10, 0, 10));
+        add(welcomeLabel, BorderLayout.PAGE_START);
+ 
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Vehicles", buildVehiclesTab());
+        tabs.addTab("Bookings", buildBookingsTab());
+        tabs.addTab("Announcements", buildAnnouncementsTab());
+        add(tabs, BorderLayout.CENTER);
+ 
+        add(buildSaveBar(), BorderLayout.SOUTH);
+    }
+ 
+    private JPanel buildVehiclesTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+ 
+        panel.add(buildAddVehicleForm(), BorderLayout.NORTH);
+        panel.add(buildVehicleStatusTable(), BorderLayout.CENTER);
+ 
+        JButton removeButton = new JButton("Remove Selected Vehicle");
+        removeButton.addActionListener(e -> onRemoveVehicle());
+        JPanel removeRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        removeRow.add(removeButton);
+        panel.add(removeRow, BorderLayout.SOUTH);
+ 
+        return panel;
+    }
+ 
+    private JPanel buildAddVehicleForm() {
+        JPanel form = new JPanel();
+        form.setBorder(BorderFactory.createTitledBorder("Add Vehicle"));
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+ 
+        JPanel commonRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        vehicleTypeCombo = new JComboBox<>(new String[]{"Car", "Motorcycle"});
+        vehicleIdField = new JTextField(8);
+        brandField = new JTextField(8);
+        modelField = new JTextField(8);
+        priceField = new JTextField(6);
+        availableCheckBox = new JCheckBox("Available", true);
+ 
+        commonRow.add(new JLabel("Type:"));
+        commonRow.add(vehicleTypeCombo);
+        commonRow.add(new JLabel("ID:"));
+        commonRow.add(vehicleIdField);
+        commonRow.add(new JLabel("Brand:"));
+        commonRow.add(brandField);
+        commonRow.add(new JLabel("Model:"));
+        commonRow.add(modelField);
+        commonRow.add(new JLabel("Price/Day:"));
+        commonRow.add(priceField);
+        commonRow.add(availableCheckBox);
+        form.add(commonRow);
+ 
+        JPanel imageRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        imagePathField = new JTextField(10);
+        imageRow.add(new JLabel("Image Path:"));
+        imageRow.add(imagePathField);
+        form.add(imageRow);
+ 
+        // Type-specific fields swap via CardLayout, driven by vehicleTypeCombo -
+        // this is the one place polymorphism surfaces in the GUI layer: the
+        // concrete class constructed in onAddVehicle() depends on this choice.
+        typeCardLayout = new CardLayout();
+        typeCardPanel = new JPanel(typeCardLayout);
+        typeCardPanel.add(buildCarFieldsPanel(), "Car");
+        typeCardPanel.add(buildMotoFieldsPanel(), "Motorcycle");
+        form.add(typeCardPanel);
+ 
+        vehicleTypeCombo.addActionListener(e ->
+                typeCardLayout.show(typeCardPanel, (String) vehicleTypeCombo.getSelectedItem()));
+ 
+        JButton addButton = new JButton("Add Vehicle");
+        addButton.addActionListener(e -> onAddVehicle());
+        JPanel addRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        addRow.add(addButton);
+        form.add(addRow);
+ 
+        return form;
+    }
+ 
+    private JPanel buildCarFieldsPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        numDoorsField = new JTextField(3);
+        transmissionField = new JTextField(8);
+        carMileageField = new JTextField(6);
+ 
+        panel.add(new JLabel("Doors:"));
+        panel.add(numDoorsField);
+        panel.add(new JLabel("Transmission:"));
+        panel.add(transmissionField);
+        panel.add(new JLabel("Mileage:"));
+        panel.add(carMileageField);
+        return panel;
+    }
+ 
+    private JPanel buildMotoFieldsPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        engineCCField = new JTextField(6);
+        motoMileageField = new JTextField(6);
+ 
+        panel.add(new JLabel("Engine CC:"));
+        panel.add(engineCCField);
+        panel.add(new JLabel("Mileage:"));
+        panel.add(motoMileageField);
+        return panel;
+    }
+ 
+    private JScrollPane buildVehicleStatusTable() {
+        String[] columns = {"Vehicle ID", "Brand", "Model", "Price/Day", "Available", "Avg Rating"};
+        vehicleStatusTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        vehicleStatusTable = new JTable(vehicleStatusTableModel);
+        vehicleStatusTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+ 
+        JScrollPane scrollPane = new JScrollPane(vehicleStatusTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Current Fleet"));
+        return scrollPane;
+    }
+ 
+    private JScrollPane buildBookingsTab() {
+        String[] columns = {"Token", "Customer", "Vehicle", "Days", "Date", "Status", "Total Cost"};
+        bookingsTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        bookingsTable = new JTable(bookingsTableModel);
+ 
+        JScrollPane scrollPane = new JScrollPane(bookingsTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("All Bookings"));
+        return scrollPane;
+    }
+ 
+    private JPanel buildAnnouncementsTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+ 
+        announcementListArea = new JTextArea();
+        announcementListArea.setEditable(false);
+        JScrollPane listScroll = new JScrollPane(announcementListArea);
+        listScroll.setBorder(BorderFactory.createTitledBorder("Posted Announcements"));
+        panel.add(listScroll, BorderLayout.CENTER);
+ 
+        JPanel postRow = new JPanel(new BorderLayout(4, 4));
+        postRow.setBorder(BorderFactory.createTitledBorder("Post New Announcement"));
+        announcementField = new JTextArea(3, 20);
+        postRow.add(new JScrollPane(announcementField), BorderLayout.CENTER);
+ 
+        JButton postButton = new JButton("Post Announcement");
+        postButton.addActionListener(e -> onPostAnnouncement());
+        postRow.add(postButton, BorderLayout.EAST);
+ 
+        panel.add(postRow, BorderLayout.SOUTH);
+        return panel;
+    }
+ 
+    private JPanel buildSaveBar() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton saveButton = new JButton("Save All Changes");
+        saveButton.addActionListener(e -> saveChanges());
+        row.add(saveButton);
+        return row;
+    }
+ 
+    // ------------------------------- UML behaviour methods ------------------------
+ 
+    public void onAddVehicle() {
+        String vehicleId = vehicleIdField.getText();
+        String brand = brandField.getText();
+        String model = modelField.getText();
+        String imagePath = imagePathField.getText();
+        double price = parseDoubleOrDefault(priceField.getText(), -1);
+        boolean available = availableCheckBox.isSelected();
+ 
+        if (vehicleId == null || vehicleId.trim().isEmpty() || price <= 0) {
+            JOptionPane.showMessageDialog(this, "Enter a valid vehicle ID and a price above 0.");
+            return;
+        }
+ 
+        // Polymorphism in action: which concrete class gets built depends
+        // entirely on the combo box the admin picked.
+        Vehicle vehicle;
+        String type = (String) vehicleTypeCombo.getSelectedItem();
+        if ("Car".equals(type)) {
+            int numDoors = parseIntOrDefault(numDoorsField.getText(), 4);
+            String transmission = transmissionField.getText();
+            int mileage = parseIntOrDefault(carMileageField.getText(), 0);
+            vehicle = new Car(vehicleId.trim(), brand, model, imagePath, price, available,
+                    numDoors, transmission, mileage);
+        } else {
+            int engineCC = parseIntOrDefault(engineCCField.getText(), 0);
+            int mileage = parseIntOrDefault(motoMileageField.getText(), 0);
+            vehicle = new Motorcycle(vehicleId.trim(), brand, model, imagePath, price, available,
+                    engineCC, mileage);
+        }
+ 
+        currentAdmin.addVehicle(system, vehicle);
+        fileManager.saveVehicles(system.getVehicleList()); // only vehicleList changed
+        JOptionPane.showMessageDialog(this, "Vehicle added.");
+        onViewVehicleStatus();
+    }
+ 
+    public void onRemoveVehicle() {
+        int row = vehicleStatusTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select a vehicle from the table first.");
+            return;
+        }
+ 
+        String vehicleId = (String) vehicleStatusTableModel.getValueAt(row, 0);
+        currentAdmin.removeVehicle(system, vehicleId);
+        fileManager.saveVehicles(system.getVehicleList());
+        JOptionPane.showMessageDialog(this, "Vehicle removed.");
+        onViewVehicleStatus();
+    }
+ 
+    public void onPostAnnouncement() {
+        String content = announcementField.getText();
+        if (content == null || content.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter an announcement message first.");
+            return;
+        }
+ 
+        currentAdmin.postAnnouncement(system, content.trim());
+        fileManager.saveAnnouncements(system.getAnnouncementList());
+        announcementField.setText("");
+        JOptionPane.showMessageDialog(this, "Announcement posted.");
+        refreshAnnouncementList();
+    }
+ 
+    public void onViewBookings() {
+        bookingsTableModel.setRowCount(0);
+        List<Booking> bookings = currentAdmin.viewAllBookings(system);
+        for (Booking b : bookings) {
+            bookingsTableModel.addRow(new Object[]{
+                b.getBookingToken(),
+                b.getCustomer().getName(),
+                b.getVehicle().getBrand() + " " + b.getVehicle().getModel(),
+                b.rentalDurationDays,
+                b.getBookingDate(),
+                b.getStatus(),
+                String.format("%.2f", b.calculateTotalCost())
+            });
+        }
+    }
+ 
+    public void onViewVehicleStatus() {
+        vehicleStatusTableModel.setRowCount(0);
+        List<Vehicle> vehicles = currentAdmin.viewVehicleStatus(system);
+        for (Vehicle v : vehicles) {
+            vehicleStatusTableModel.addRow(new Object[]{
+                v.getVehicleID(),
+                v.getBrand(),
+                v.getModel(),
+                v.getPrice(),
+                v.getIsAvailable() ? "Yes" : "No",
+                String.format("%.1f", v.getAverageRating())
+            });
+        }
+    }
+ 
+    public void saveChanges() {
+        // The one explicit, admin-triggered save. Every other action
+        // (add/remove/post) already saves its own precise slice immediately,
+        // per project convention - this is the "save everything, just to be
+        // safe" button the UML's saveChanges() method implies.
+        fileManager.saveAll(system);
+        JOptionPane.showMessageDialog(this, "All changes saved.");
+    }
+ 
+    // ------------------------------------ Helpers ---------------------------------
+ 
+    private void refreshAnnouncementList() {
+        StringBuilder sb = new StringBuilder();
+        for (Announcement a : system.getAnnouncementList()) {
+            sb.append("[").append(a.datePosted).append("] ").append(a.content).append("\n\n");
+        }
+        announcementListArea.setText(sb.toString());
+    }
+ 
+    private double parseDoubleOrDefault(String text, double defaultValue) {
+        try {
+            return Double.parseDouble(text.trim());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+ 
+    private int parseIntOrDefault(String text, int defaultValue) {
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
 }
