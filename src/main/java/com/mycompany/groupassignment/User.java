@@ -44,12 +44,25 @@ public class User {
         return system.cancelBooking(bookingToken);
     }
     
+    public void leaveReview(VehicleServiceBookingSystem system, String vehicleId, int rating) {
+        if(rating > 0 && rating < 6){
+            for (Vehicle vehicle : system.getVehicleList()) {
+                if (vehicle.getVehicleID().equals(vehicleId)) {
+                    vehicle.addReview(new Review(this.name, rating));
+                    return;
+                }
+            }
+        }
+    }
+    
     public void leaveReview(VehicleServiceBookingSystem system, String vehicleId,
                              int rating, String comment) {
-        for (Vehicle vehicle : system.getVehicleList()) {
-            if (vehicle.getVehicleID().equals(vehicleId)) {
-                vehicle.addReview(new Review(this.name, rating, comment));
-                return;
+        if(rating > 0 && rating < 6){
+            for (Vehicle vehicle : system.getVehicleList()) {
+                if (vehicle.getVehicleID().equals(vehicleId)) {
+                    vehicle.addReview(new Review(this.name, rating, comment));
+                    return;
+                }
             }
         }
     }
