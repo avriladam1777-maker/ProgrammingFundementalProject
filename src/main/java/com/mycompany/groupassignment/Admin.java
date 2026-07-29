@@ -38,6 +38,20 @@ public class Admin {
         system.getVehicleList().removeIf(v -> v.getVehicleID().equals(vehicleId));
     }
     
+    public boolean updateVehicle(VehicleServiceBookingSystem system, String vehicleId,
+                                  String brand, String model, double price, String imagePath) {
+        for (Vehicle vehicle : system.getVehicleList()) {
+            if (vehicle.getVehicleID().equals(vehicleId)) {
+                vehicle.setBrand(brand);
+                vehicle.setModel(model);
+                vehicle.setPrice(price);
+                vehicle.setImagePath(imagePath);
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public Announcement postAnnouncement(VehicleServiceBookingSystem system, String content) {
         Announcement announcement = new Announcement(
                 UUID.randomUUID().toString(), content, LocalDate.now());
