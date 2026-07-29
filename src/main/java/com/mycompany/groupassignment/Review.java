@@ -21,6 +21,9 @@ public class Review {
     //reason to have this is to give option to have a comment or not
     //the asking for the comment will have to be written in the GUI later
     public Review(String reviewerName, int rating, String comment){
+        if (rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5, got: " + rating);
+        }
         this.reviewerName = reviewerName;
         this.rating = rating;
         this.comment = (comment == null) ? "" : comment;
