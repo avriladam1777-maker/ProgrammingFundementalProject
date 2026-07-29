@@ -23,6 +23,13 @@ public class VehicleServiceBookingSystem {
     private List<Announcement> announcementList;
     private List<User> userList;
     
+    public VehicleServiceBookingSystem() {
+        this.vehicleList = new ArrayList<>();
+        this.bookingList = new ArrayList<>();
+        this.adminList = new ArrayList<>();
+        this.announcementList = new ArrayList<>();
+        this.userList = new ArrayList<>();
+    }
     
     // Read access:
     // All five return the live list, not a copy
