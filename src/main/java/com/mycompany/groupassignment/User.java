@@ -44,15 +44,9 @@ public class User {
         return system.cancelBooking(bookingToken);
     }
     
+    //maintain polymorphism while keeping the system working as a whole
     public void leaveReview(VehicleServiceBookingSystem system, String vehicleId, int rating) {
-        if(rating > 0 && rating < 6){
-            for (Vehicle vehicle : system.getVehicleList()) {
-                if (vehicle.getVehicleID().equals(vehicleId)) {
-                    vehicle.addReview(new Review(this.name, rating));
-                    return;
-                }
-            }
-        }
+        leaveReview(system, vehicleId, rating, "");
     }
     
     public void leaveReview(VehicleServiceBookingSystem system, String vehicleId,
