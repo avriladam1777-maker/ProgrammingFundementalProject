@@ -113,7 +113,7 @@ public class VehicleServiceBookingSystem {
                                   int rentalDurationDays) {
         Vehicle vehicle = findVehicleById(vehicleId);
         if (vehicle == null || !vehicle.getIsAvailable()) {
-            return null; // TODO exception-handling pass: throw instead of returning null
+            return null;
         }
  
         String bookingToken = UUID.randomUUID().toString();
