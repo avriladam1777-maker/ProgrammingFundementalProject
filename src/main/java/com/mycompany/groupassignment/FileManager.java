@@ -129,7 +129,11 @@ public class FileManager {
         String[] entries = block.split(";", -1);
         for (String entry : entries) {
             String[] f = entry.split(":", -1);
-            reviews.add(new Review(f[0], Integer.parseInt(f[1]), f[2]));
+            try {
+                reviews.add(new Review(f[0], Integer.parseInt(f[1]), f[2]));
+            } catch (IllegalArgumentException e) {
+                System.out.println("Skipping corrupted review entry: " + entry + " (" + e.getMessage() + ")");
+            }
         }
         return reviews;
     }
