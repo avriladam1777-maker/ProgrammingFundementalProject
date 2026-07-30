@@ -1,1 +1,3 @@
 MOTO|motorcycle1|SUZUKI|Hayabusa||250.0|false|1500|4500|:4:;:4:poop car driver(myself)
+CAR|car2|Proton|Saga||30.0|false|5|V4|2076|
+CAR|car3|Nissan|GTR-26||1000.0|true|3|V8 Pro|2000|
