@@ -28,7 +28,6 @@ public class AdminFrame extends JFrame {
     private JTextField vehicleIdField;
     private JTextField brandField;
     private JTextField modelField;
-    private JTextField imagePathField;
     private JTextField priceField;
     private JCheckBox availableCheckBox;
  
@@ -96,6 +95,10 @@ public class AdminFrame extends JFrame {
         }
     }
  
+    public boolean isLoginSuccessful() {
+        return currentAdmin != null;
+    }
+
     // ---------------------------------- Login -----------------------------------
  
     private Admin resolveCurrentAdmin() {
@@ -151,7 +154,7 @@ public class AdminFrame extends JFrame {
         
         add(tabs, BorderLayout.CENTER);
  
-        add(buildSaveBar(), BorderLayout.SOUTH);
+        add(buildNavigationBar(), BorderLayout.SOUTH);
     }
  
     private JPanel buildVehiclesTab() {
@@ -165,9 +168,11 @@ public class AdminFrame extends JFrame {
         // expected this ("...in the form above, then Update"), it just had no
         // button wired to it yet.
         JButton updateButton = new JButton("Update Selected Vehicle");
+        updateButton.setPreferredSize(new Dimension(200, 30));
         updateButton.addActionListener(e -> onUpdateVehicle());
  
         JButton removeButton = new JButton("Remove Selected Vehicle");
+        removeButton.setPreferredSize(new Dimension(200, 30));
         removeButton.addActionListener(e -> onRemoveVehicle());
  
         JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -180,7 +185,10 @@ public class AdminFrame extends JFrame {
  
     private JPanel buildAddVehicleForm() {
         JPanel form = new JPanel();
-        form.setBorder(BorderFactory.createTitledBorder("Add Vehicle"));
+        form.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Add Vehicle"),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
  
         JPanel commonRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -204,17 +212,12 @@ public class AdminFrame extends JFrame {
         commonRow.add(availableCheckBox);
         form.add(commonRow);
  
-        JPanel imageRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        imagePathField = new JTextField(10);
-        imageRow.add(new JLabel("Image Path:"));
-        imageRow.add(imagePathField);
-        form.add(imageRow);
- 
         // Type-specific fields swap via CardLayout, driven by vehicleTypeCombo -
         // this is the one place polymorphism surfaces in the GUI layer: the
         // concrete class constructed in onAddVehicle() depends on this choice.
         typeCardLayout = new CardLayout();
         typeCardPanel = new JPanel(typeCardLayout);
+        typeCardPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
         typeCardPanel.add(buildCarFieldsPanel(), "Car");
         typeCardPanel.add(buildMotoFieldsPanel(), "Motorcycle");
         form.add(typeCardPanel);
@@ -223,6 +226,7 @@ public class AdminFrame extends JFrame {
                 typeCardLayout.show(typeCardPanel, (String) vehicleTypeCombo.getSelectedItem()));
  
         JButton addButton = new JButton("Add Vehicle");
+        addButton.setPreferredSize(new Dimension(150, 30));
         addButton.addActionListener(e -> onAddVehicle());
         JPanel addRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addRow.add(addButton);
@@ -232,7 +236,7 @@ public class AdminFrame extends JFrame {
     }
  
     private JPanel buildCarFieldsPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         numDoorsField = new JTextField(3);
         transmissionField = new JTextField(8);
         carMileageField = new JTextField(6);
@@ -247,7 +251,7 @@ public class AdminFrame extends JFrame {
     }
  
     private JPanel buildMotoFieldsPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         engineCCField = new JTextField(6);
         motoMileageField = new JTextField(6);
  
@@ -303,9 +307,18 @@ public class AdminFrame extends JFrame {
         announcementField = new JTextArea(3, 20);
         postRow.add(new JScrollPane(announcementField), BorderLayout.CENTER);
  
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton removeButton = new JButton("Remove Latest Announcement");
+        removeButton.setPreferredSize(new Dimension(220, 30));
+        removeButton.addActionListener(e -> onRemoveLatestAnnouncement());
+        buttonPanel.add(removeButton);
+
         JButton postButton = new JButton("Post Announcement");
+        postButton.setPreferredSize(new Dimension(180, 30));
         postButton.addActionListener(e -> onPostAnnouncement());
-        postRow.add(postButton, BorderLayout.EAST);
+        buttonPanel.add(postButton);
+        
+        postRow.add(buttonPanel, BorderLayout.EAST);
  
         panel.add(postRow, BorderLayout.SOUTH);
         return panel;
@@ -323,6 +336,7 @@ public class AdminFrame extends JFrame {
         addRow.add(new JLabel("Password:"));
         addRow.add(newSubAdminPasswordField);
         JButton addSubAdminButton = new JButton("Add Sub-Admin");
+        addSubAdminButton.setPreferredSize(new Dimension(150, 30));
         addSubAdminButton.addActionListener(e -> onAddSubAdmin());
         addRow.add(addSubAdminButton);
         panel.add(addRow, BorderLayout.NORTH);
@@ -357,12 +371,29 @@ public class AdminFrame extends JFrame {
         return panel;
     }
     
-    private JPanel buildSaveBar() {
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    private JPanel buildNavigationBar() {
+        JPanel navBar = new JPanel(new BorderLayout());
+        navBar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JButton backButton = new JButton("Log Out / Back");
+        backButton.setPreferredSize(new Dimension(150, 35));
+        backButton.addActionListener(e -> dispose());
+        leftPanel.add(backButton);
+        
+        JButton exitButton = new JButton("Exit Application");
+        exitButton.setPreferredSize(new Dimension(150, 35));
+        exitButton.addActionListener(e -> System.exit(0));
+        leftPanel.add(exitButton);
+        
+        navBar.add(leftPanel, BorderLayout.WEST);
+        
         JButton saveButton = new JButton("Save All Changes");
+        saveButton.setPreferredSize(new Dimension(200, 35));
         saveButton.addActionListener(e -> saveChanges());
-        row.add(saveButton);
-        return row;
+        navBar.add(saveButton, BorderLayout.EAST);
+        
+        return navBar;
     }
  
     // ------------------------------- UML behaviour methods ------------------------
@@ -371,36 +402,73 @@ public class AdminFrame extends JFrame {
         String vehicleId = vehicleIdField.getText();
         String brand = brandField.getText();
         String model = modelField.getText();
-        String imagePath = imagePathField.getText();
-        double price = parseDoubleOrDefault(priceField.getText(), -1);
         boolean available = availableCheckBox.isSelected();
  
-        if (vehicleId == null || vehicleId.trim().isEmpty() || price <= 0) {
-            JOptionPane.showMessageDialog(this, "Enter a valid vehicle ID and a price above 0.");
+        if (vehicleId == null || vehicleId.trim().isEmpty() || brand == null || brand.trim().isEmpty() || model == null || model.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter valid non-empty values for ID, Brand, and Model.");
             return;
         }
  
-        // Polymorphism in action: which concrete class gets built depends
-        // entirely on the combo box the admin picked.
-        Vehicle vehicle;
-        String type = (String) vehicleTypeCombo.getSelectedItem();
-        if ("Car".equals(type)) {
-            int numDoors = parseIntOrDefault(numDoorsField.getText(), 4);
-            String transmission = transmissionField.getText();
-            int mileage = parseIntOrDefault(carMileageField.getText(), 0);
-            vehicle = new Car(vehicleId.trim(), brand, model, imagePath, price, available,
-                    numDoors, transmission, mileage);
-        } else {
-            int engineCC = parseIntOrDefault(engineCCField.getText(), 0);
-            int mileage = parseIntOrDefault(motoMileageField.getText(), 0);
-            vehicle = new Motorcycle(vehicleId.trim(), brand, model, imagePath, price, available,
-                    engineCC, mileage);
+        for (Vehicle v : system.getVehicleList()) {
+            if (v.getVehicleID().equals(vehicleId.trim())) {
+                JOptionPane.showMessageDialog(this, "A vehicle with this ID already exists.");
+                return;
+            }
         }
  
-        currentAdmin.addVehicle(system, vehicle);
-        fileManager.saveVehicles(system.getVehicleList()); // only vehicleList changed
-        JOptionPane.showMessageDialog(this, "Vehicle added.");
-        onViewVehicleStatus();
+        try {
+            double price = Double.parseDouble(priceField.getText().trim());
+            if (price <= 0) {
+                JOptionPane.showMessageDialog(this, "Price must be strictly positive.");
+                return;
+            }
+            
+            Vehicle vehicle;
+            String type = (String) vehicleTypeCombo.getSelectedItem();
+            if ("Car".equals(type)) {
+                int numDoors = Integer.parseInt(numDoorsField.getText().trim());
+                if (numDoors < 2 || numDoors > 6) {
+                    JOptionPane.showMessageDialog(this, "Doors must be between 2 and 6.");
+                    return;
+                }
+                String transmission = transmissionField.getText();
+                if (transmission == null || transmission.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Enter a valid transmission type.");
+                    return;
+                }
+                int mileage = Integer.parseInt(carMileageField.getText().trim());
+                if (mileage < 0) {
+                    JOptionPane.showMessageDialog(this, "Mileage cannot be negative.");
+                    return;
+                }
+                vehicle = new Car(vehicleId.trim(), brand.trim(), model.trim(), price, available,
+                        numDoors, transmission.trim(), mileage);
+            } else {
+                int engineCC = Integer.parseInt(engineCCField.getText().trim());
+                if (engineCC <= 50) {
+                    JOptionPane.showMessageDialog(this, "Engine CC must be greater than 50.");
+                    return;
+                }
+                int mileage = Integer.parseInt(motoMileageField.getText().trim());
+                if (mileage < 0) {
+                    JOptionPane.showMessageDialog(this, "Mileage cannot be negative.");
+                    return;
+                }
+                vehicle = new Motorcycle(vehicleId.trim(), brand.trim(), model.trim(), price, available,
+                        engineCC, mileage);
+            }
+ 
+            currentAdmin.addVehicle(system, vehicle);
+            fileManager.saveVehicles(system.getVehicleList()); // only vehicleList changed
+            JOptionPane.showMessageDialog(this, "Vehicle added.");
+            onViewVehicleStatus();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Price, Doors, CC, and Mileage must be valid numbers.");
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to save vehicle: " + e.getMessage());
+        }
     }
     
     public void onUpdateVehicle() {
@@ -413,26 +481,38 @@ public class AdminFrame extends JFrame {
         String vehicleId = (String) vehicleStatusTableModel.getValueAt(row, 0);
         String brand = brandField.getText();
         String model = modelField.getText();
-        String imagePath = imagePathField.getText();
-        double price = parseDoubleOrDefault(priceField.getText(), -1);
- 
-        if (price <= 0) {
-            JOptionPane.showMessageDialog(this, "Enter a valid price above 0 in the form above, then Update.");
+        
+        if (brand == null || brand.trim().isEmpty() || model == null || model.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter valid non-empty values for Brand and Model.");
             return;
         }
  
-        // Admin.updateVehicle() only touches brand/model/price/imagePath
-        // (confirmed against the real method signature) - type-specific
-        // fields and availability aren't editable through Update.
-        boolean updated = currentAdmin.updateVehicle(system, vehicleId, brand, model, price, imagePath);
-        if (!updated) {
-            JOptionPane.showMessageDialog(this, "Vehicle not found - nothing was updated.");
-            return;
-        }
+        try {
+            double price = Double.parseDouble(priceField.getText().trim());
+            if (price <= 0) {
+                JOptionPane.showMessageDialog(this, "Price must be strictly positive.");
+                return;
+            }
  
-        fileManager.saveVehicles(system.getVehicleList());
-        JOptionPane.showMessageDialog(this, "Vehicle updated.");
-        onViewVehicleStatus();
+            // Admin.updateVehicle() only touches brand/model/price
+            // (confirmed against the real method signature) - type-specific
+            // fields and availability aren't editable through Update.
+            boolean updated = currentAdmin.updateVehicle(system, vehicleId, brand.trim(), model.trim(), price);
+            if (!updated) {
+                JOptionPane.showMessageDialog(this, "Vehicle not found - nothing was updated.");
+                return;
+            }
+ 
+            fileManager.saveVehicles(system.getVehicleList());
+            JOptionPane.showMessageDialog(this, "Vehicle updated.");
+            onViewVehicleStatus();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Price must be a valid number.");
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to update vehicle: " + e.getMessage());
+        }
     }
  
     public void onRemoveVehicle() {
@@ -442,11 +522,15 @@ public class AdminFrame extends JFrame {
             return;
         }
  
-        String vehicleId = (String) vehicleStatusTableModel.getValueAt(row, 0);
-        currentAdmin.removeVehicle(system, vehicleId);
-        fileManager.saveVehicles(system.getVehicleList());
-        JOptionPane.showMessageDialog(this, "Vehicle removed.");
-        onViewVehicleStatus();
+        try {
+            String vehicleId = (String) vehicleStatusTableModel.getValueAt(row, 0);
+            currentAdmin.removeVehicle(system, vehicleId);
+            fileManager.saveVehicles(system.getVehicleList());
+            JOptionPane.showMessageDialog(this, "Vehicle removed.");
+            onViewVehicleStatus();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to remove vehicle: " + e.getMessage());
+        }
     }
  
     public void onPostAnnouncement() {
@@ -456,11 +540,32 @@ public class AdminFrame extends JFrame {
             return;
         }
  
-        currentAdmin.postAnnouncement(system, content.trim());
-        fileManager.saveAnnouncements(system.getAnnouncementList());
-        announcementField.setText("");
-        JOptionPane.showMessageDialog(this, "Announcement posted.");
-        refreshAnnouncementList();
+        try {
+            currentAdmin.postAnnouncement(system, content.trim());
+            fileManager.saveAnnouncements(system.getAnnouncementList());
+            announcementField.setText("");
+            JOptionPane.showMessageDialog(this, "Announcement posted.");
+            refreshAnnouncementList();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to post announcement: " + e.getMessage());
+        }
+    }
+ 
+    public void onRemoveLatestAnnouncement() {
+        List<Announcement> announcements = system.getAnnouncementList();
+        if (announcements.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No announcements to remove.");
+            return;
+        }
+        
+        announcements.remove(announcements.size() - 1);
+        try {
+            fileManager.saveAnnouncements(announcements);
+            refreshAnnouncementList();
+            JOptionPane.showMessageDialog(this, "Latest announcement removed.");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to remove announcement: " + e.getMessage());
+        }
     }
  
     public void onViewBookings() {
@@ -499,9 +604,16 @@ public class AdminFrame extends JFrame {
     public void onAddSubAdmin() {
         String username = newSubAdminUsernameField.getText();
         String password = new String(newSubAdminPasswordField.getPassword());
-        if (username == null || username.trim().isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Enter a username and password for the new sub-admin.");
+        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter a valid non-empty username and password for the new sub-admin.");
             return;
+        }
+        
+        for (Admin a : system.getAdminList()) {
+            if (a.getAdminUsername().equals(username.trim())) {
+                JOptionPane.showMessageDialog(this, "This username is already taken.");
+                return;
+            }
         }
  
         // currentAdmin.createSubAdmin() itself refuses and returns null if
@@ -524,16 +636,21 @@ public class AdminFrame extends JFrame {
         String subAdminId = (String) subAdminTableModel.getValueAt(row, 0);
         boolean newActive = (Boolean) subAdminTableModel.getValueAt(row, 2);
  
-        boolean success = currentAdmin.setSubAdminActive(system, subAdminId, newActive);
-        if (!success) {
-            JOptionPane.showMessageDialog(this, "Could not update that sub-admin's access.");
-            refreshSubAdminTable(); // revert the checkbox to the real saved state
-            return;
-        }
+        try {
+            boolean success = currentAdmin.setSubAdminActive(system, subAdminId, newActive);
+            if (!success) {
+                JOptionPane.showMessageDialog(this, "Could not update that sub-admin's access.");
+                refreshSubAdminTable(); // revert the checkbox to the real saved state
+                return;
+            }
  
-        // The checkbox toggle IS the action - save immediately, same
-        // convention as every other mutating action in this project.
-        fileManager.saveAdmins(system.getAdminList());
+            // The checkbox toggle IS the action - save immediately, same
+            // convention as every other mutating action in this project.
+            fileManager.saveAdmins(system.getAdminList());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Failed to save: " + ex.getMessage());
+            refreshSubAdminTable();
+        }
     }
  
     private void refreshSubAdminTable() {
@@ -562,21 +679,5 @@ public class AdminFrame extends JFrame {
             sb.append("[").append(a.datePosted).append("] ").append(a.content).append("\n\n");
         }
         announcementListArea.setText(sb.toString());
-    }
- 
-    private double parseDoubleOrDefault(String text, double defaultValue) {
-        try {
-            return Double.parseDouble(text.trim());
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
- 
-    private int parseIntOrDefault(String text, int defaultValue) {
-        try {
-            return Integer.parseInt(text.trim());
-        } catch (Exception e) {
-            return defaultValue;
-        }
     }
 }

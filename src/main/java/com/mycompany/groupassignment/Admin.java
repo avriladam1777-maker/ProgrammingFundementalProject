@@ -53,13 +53,12 @@ public class Admin {
     }
     
     public boolean updateVehicle(VehicleServiceBookingSystem system, String vehicleId,
-                                  String brand, String model, double price, String imagePath) {
+                                  String brand, String model, double price) {
         for (Vehicle vehicle : system.getVehicleList()) {
             if (vehicle.getVehicleID().equals(vehicleId)) {
                 vehicle.setBrand(brand);
                 vehicle.setModel(model);
                 vehicle.setPrice(price);
-                vehicle.setImagePath(imagePath);
                 return true;
             }
         }

@@ -58,6 +58,8 @@ public class User {
                     return;
                 }
             }
+        } else {
+            throw new IllegalArgumentException("Rating must be between 1 and 5.");
         }
     }
     

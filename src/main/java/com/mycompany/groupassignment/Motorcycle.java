@@ -12,11 +12,11 @@ public class Motorcycle extends Vehicle{
     private int engineCC;
     public int mileage;
     
-    public Motorcycle(String vehicleID, String brand, String model, String imagePath, 
+    public Motorcycle(String vehicleID, String brand, String model, 
             double price, boolean isAvailable, int engineCC, int mileage)
         {
-        super(vehicleID, brand, model, imagePath, price, isAvailable);
-        this.engineCC = engineCC;
+        super(vehicleID, brand, model, price, isAvailable);
+        setEngineCC(engineCC);
         this.mileage = mileage;
     }
     
@@ -24,14 +24,14 @@ public class Motorcycle extends Vehicle{
         if(newCC > 50 && newCC <= 2500){
             this.engineCC = newCC;
         } 
-        else if(newCC <= 50){//make sure this will throw an error when compiling later
-            System.out.println("Invalid CC for the Motorcycle. Please increase the CC of the engine.");
+        else if(newCC <= 50){
+            throw new IllegalArgumentException("Invalid CC for the Motorcycle. Please increase the CC of the engine.");
         }
         else if(newCC > 2500){
-            System.out.println("Invalid CC for the Motorcycle. Please lower the CC of the engine.");
+            throw new IllegalArgumentException("Invalid CC for the Motorcycle. Please lower the CC of the engine.");
         }
         else{
-            System.out.println("Invalid CC for the Motorcycle. Please enter a valid number of CC.");
+            throw new IllegalArgumentException("Invalid CC for the Motorcycle. Please enter a valid number of CC.");
         }
     }
     

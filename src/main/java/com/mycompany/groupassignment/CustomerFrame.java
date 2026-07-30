@@ -31,6 +31,9 @@ public class CustomerFrame extends JFrame {
     private JTable vehicleTable;
     private DefaultTableModel vehicleTableModel;
  
+    private JTable myBookingsTable;
+    private DefaultTableModel myBookingsTableModel;
+ 
     private JTextField deliveryAddressField;
     private JTextField rentalDaysField;
  
@@ -60,9 +63,13 @@ public class CustomerFrame extends JFrame {
         // Resolve who's using the frame BEFORE building the UI, so the
         // welcome label can be built with the right name in one pass.
         this.currentUser = resolveCurrentUser();
+        if (this.currentUser == null) {
+            System.exit(0);
+        }
  
         initComponents();
         refreshVehicleTable();
+        refreshMyBookingsTable();
         refreshAnnouncementList();
     }
  
@@ -77,7 +84,11 @@ public class CustomerFrame extends JFrame {
         String name = JOptionPane.showInputDialog(this,
                 "Enter your name:", "Customer Login", JOptionPane.QUESTION_MESSAGE);
  
-        if (name != null && !name.trim().isEmpty()) {
+        if (name == null) {
+            return null;
+        }
+
+        if (!name.trim().isEmpty()) {
             User existing = system.findUserByName(name.trim());
             if (existing != null) {
                 JOptionPane.showMessageDialog(this, "Welcome back, " + existing.getName() + "!");
@@ -92,13 +103,30 @@ public class CustomerFrame extends JFrame {
     private User registerNewUser(String enteredName) {
         // Re-prompt only if they left the name blank the first time -
         // a name is required either way, returning or brand new.
-        String name = (enteredName != null && !enteredName.trim().isEmpty())
-                ? enteredName.trim()
-                : JOptionPane.showInputDialog(this, "Enter your name:");
+        String name = enteredName;
+        while (name == null || name.trim().isEmpty()) {
+            name = JOptionPane.showInputDialog(this, "Enter your name:");
+            if (name == null) {
+                return null;
+            }
+        }
+        name = name.trim();
  
         String contact = JOptionPane.showInputDialog(this, "Enter your contact number:");
+        if (contact == null) return null;
+        
         String email = JOptionPane.showInputDialog(this, "Enter your email:");
+        if (email == null) return null;
+        
+        for (User u : system.getUserList()) {
+            if (u.getContactNum().equals(contact.trim()) || u.getUserEmail().equals(email.trim())) {
+                JOptionPane.showMessageDialog(this, "This contact number or email is already registered.");
+                return null;
+            }
+        }
+        
         int age = readAge();
+        if (age == -1) return null;
  
         // ID is now generated every time and never shown to the customer -
         // findUserByName() is the only thing that needs to find this record
@@ -114,6 +142,9 @@ public class CustomerFrame extends JFrame {
  
     private int readAge() {
         String ageText = JOptionPane.showInputDialog(this, "Enter your age:");
+        if (ageText == null) {
+            return -1;
+        }
         try {
             return Integer.parseInt(ageText.trim());
         } catch (Exception e) {
@@ -142,6 +173,7 @@ public class CustomerFrame extends JFrame {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Book a Vehicle", buildBookingTab());
         tabs.addTab("Announcements", buildAnnouncementsTab());
+        tabs.addTab("My Bookings", buildMyBookingsTab());
         add(tabs, BorderLayout.CENTER);
     }
  
@@ -150,6 +182,40 @@ public class CustomerFrame extends JFrame {
         panel.add(buildSearchPanel(), BorderLayout.NORTH);
         panel.add(buildTablePanel(), BorderLayout.CENTER);
         panel.add(buildActionPanel(), BorderLayout.SOUTH);
+        return panel;
+    }
+ 
+    private JPanel buildMyBookingsTab() {
+        String[] columns = {"Token", "Vehicle", "Days", "Date", "Status", "Total Cost"};
+        myBookingsTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        myBookingsTable = new JTable(myBookingsTableModel);
+        myBookingsTable.getColumnModel().getColumn(0).setPreferredWidth(250);
+        
+        JScrollPane scrollPane = new JScrollPane(myBookingsTable);
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        JPanel copyPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton copyButton = new JButton("Copy Selected Token");
+        copyButton.addActionListener(e -> {
+            int selectedRow = myBookingsTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "Select a booking from the table first.");
+                return;
+            }
+            String token = (String) myBookingsTableModel.getValueAt(selectedRow, 0);
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                    new java.awt.datatransfer.StringSelection(token), null);
+            JOptionPane.showMessageDialog(this, "Token copied to clipboard!");
+        });
+        copyPanel.add(copyButton);
+        panel.add(copyPanel, BorderLayout.SOUTH);
+        
         return panel;
     }
  
@@ -163,8 +229,10 @@ public class CustomerFrame extends JFrame {
         panel.add(listScroll, BorderLayout.CENTER);
  
         JButton refreshButton = new JButton("Refresh");
+        refreshButton.setPreferredSize(new Dimension(150, 30));
         refreshButton.addActionListener(e -> refreshAnnouncementList());
         JPanel refreshRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshRow.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         refreshRow.add(refreshButton);
         panel.add(refreshRow, BorderLayout.SOUTH);
  
@@ -188,10 +256,12 @@ public class CustomerFrame extends JFrame {
         panel.add(maxPriceField);
  
         JButton searchButton = new JButton("Search");
+        searchButton.setPreferredSize(new Dimension(100, 30));
         searchButton.addActionListener(e -> onSearch());
         panel.add(searchButton);
  
         JButton showAllButton = new JButton("Show All Vehicles");
+        showAllButton.setPreferredSize(new Dimension(150, 30));
         showAllButton.addActionListener(e -> refreshVehicleTable());
         panel.add(showAllButton);
  
@@ -215,7 +285,8 @@ public class CustomerFrame extends JFrame {
     }
  
     private JPanel buildActionPanel() {
-        JPanel panel = new JPanel(new GridLayout(4, 1, 4, 4));
+        JPanel panel = new JPanel(new GridLayout(4, 1, 8, 8));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
  
         panel.add(buildBookRow());
         panel.add(buildCancelRow());
@@ -238,6 +309,7 @@ public class CustomerFrame extends JFrame {
         row.add(rentalDaysField);
  
         JButton bookButton = new JButton("Book");
+        bookButton.setPreferredSize(new Dimension(100, 30));
         bookButton.addActionListener(e -> onBook());
         row.add(bookButton);
  
@@ -253,6 +325,7 @@ public class CustomerFrame extends JFrame {
         row.add(cancelTokenField);
  
         JButton cancelButton = new JButton("Cancel Booking");
+        cancelButton.setPreferredSize(new Dimension(150, 30));
         cancelButton.addActionListener(e -> onCancel());
         row.add(cancelButton);
  
@@ -272,6 +345,7 @@ public class CustomerFrame extends JFrame {
         row.add(new JScrollPane(reviewCommentArea));
  
         JButton reviewButton = new JButton("Submit Review");
+        reviewButton.setPreferredSize(new Dimension(150, 30));
         reviewButton.addActionListener(e -> onReview());
         row.add(reviewButton);
  
@@ -281,6 +355,7 @@ public class CustomerFrame extends JFrame {
     private JPanel buildExitRow() {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton exitButton = new JButton("Exit Application");
+        exitButton.setPreferredSize(new Dimension(150, 30));
         // Decision locked in: exit always means the whole app closes, not
         // "return to MainMenuFrame" - so this goes straight to System.exit.
         exitButton.addActionListener(e -> System.exit(0));
@@ -292,8 +367,19 @@ public class CustomerFrame extends JFrame {
  
     public void onSearch() {
         String keyword = searchKeywordField.getText();
-        double minPrice = parseDoubleOrDefault(minPriceField.getText(), 0.0);
-        double maxPrice = parseDoubleOrDefault(maxPriceField.getText(), Double.MAX_VALUE);
+        double minPrice = 0.0;
+        double maxPrice = Double.MAX_VALUE;
+        try {
+            if (!minPriceField.getText().trim().isEmpty()) {
+                minPrice = Double.parseDouble(minPriceField.getText().trim());
+            }
+            if (!maxPriceField.getText().trim().isEmpty()) {
+                maxPrice = Double.parseDouble(maxPriceField.getText().trim());
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter valid numeric values for prices.");
+            return;
+        }
  
         // Goes through User.searchVehicles(), per the UML, not directly
         // through the system - same pattern leaveReview() already follows.
@@ -310,30 +396,41 @@ public class CustomerFrame extends JFrame {
  
         String vehicleId = (String) vehicleTableModel.getValueAt(selectedRow, 0);
         String deliveryAddress = deliveryAddressField.getText();
-        int days = parseIntOrDefault(rentalDaysField.getText(), -1);
  
         if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Enter a delivery address.");
             return;
         }
-        if (days <= 0) {
-            JOptionPane.showMessageDialog(this, "Enter a valid number of rental days.");
+
+        int days;
+        try {
+            days = Integer.parseInt(rentalDaysField.getText().trim());
+            if (days <= 0) {
+                JOptionPane.showMessageDialog(this, "Enter a valid number of rental days.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid numeric value for rental days.");
             return;
         }
  
-        Booking booking = currentUser.bookVehicle(system, vehicleId, deliveryAddress, days);
-        if (booking == null) {
-            // createBooking() returns null on failure - documented stopgap
-            // in VehicleServiceBookingSystem, ahead of the exception-handling pass.
-            JOptionPane.showMessageDialog(this, "Booking failed - that vehicle may no longer be available.");
-            return;
+        try {
+            Booking booking = currentUser.bookVehicle(system, vehicleId, deliveryAddress.trim(), days);
+            if (booking == null) {
+                // createBooking() returns null on failure - documented stopgap
+                // in VehicleServiceBookingSystem, ahead of the exception-handling pass.
+                JOptionPane.showMessageDialog(this, "Booking failed - that vehicle may no longer be available.");
+                return;
+            }
+            fileManager.saveAll(system);
+            JOptionPane.showMessageDialog(this, "Booked! Your booking token is:\n" + booking.getBookingToken());
+            refreshVehicleTable();
+            refreshMyBookingsTable();
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to save booking: " + e.getMessage());
         }
- 
-        // Booking changes both bookingList AND the vehicle's isAvailable flag,
-        // so this needs saveAll(), not just saveBookings().
-        fileManager.saveAll(system);
-        JOptionPane.showMessageDialog(this, "Booked! Your booking token is:\n" + booking.getBookingToken());
-        refreshVehicleTable();
     }
  
     public void onCancel() {
@@ -349,10 +446,14 @@ public class CustomerFrame extends JFrame {
             return;
         }
  
-        // Same reasoning as onBook(): cancel() frees the vehicle too.
-        fileManager.saveAll(system);
-        JOptionPane.showMessageDialog(this, "Booking cancelled.");
-        refreshVehicleTable();
+        try {
+            fileManager.saveAll(system);
+            JOptionPane.showMessageDialog(this, "Booking cancelled.");
+            refreshVehicleTable();
+            refreshMyBookingsTable();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to save cancellation: " + e.getMessage());
+        }
     }
  
     public void onReview() {
@@ -363,26 +464,48 @@ public class CustomerFrame extends JFrame {
         }
  
         String vehicleId = (String) vehicleTableModel.getValueAt(selectedRow, 0);
-        int rating = parseIntOrDefault(reviewRatingField.getText(), -1);
- 
-        if (rating < 1 || rating > 5) {
-            // TODO exception-handling pass: this validation belongs in
-            // Review's constructor (no setters exist) - flagged in the design log.
-            JOptionPane.showMessageDialog(this, "Rating must be between 1 and 5.");
+        
+        boolean hasBooked = false;
+        for (Booking b : system.getBookingList()) {
+            if (b.getCustomer().getName().equals(currentUser.getName()) && b.getVehicle().getVehicleID().equals(vehicleId)) {
+                hasBooked = true;
+                break;
+            }
+        }
+        
+        if (!hasBooked) {
+            JOptionPane.showMessageDialog(this, "You can only review vehicles you have booked.");
+            return;
+        }
+        
+        int rating;
+        try {
+            rating = Integer.parseInt(reviewRatingField.getText().trim());
+            if (rating < 1 || rating > 5) {
+                JOptionPane.showMessageDialog(this, "Rating must be between 1 and 5.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid numeric value for rating.");
             return;
         }
  
         String comment = reviewCommentArea.getText();
+        if (comment == null || comment.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter a comment.");
+            return;
+        }
  
-        // Goes through User.leaveReview(), per the UML, not directly through Vehicle.
-        currentUser.leaveReview(system, vehicleId, rating, comment);
- 
-        // Only vehicleList changed (reviews are nested inside each vehicle's
-        // saved line) - saveVehicles() alone is correct here, saveAll() would
-        // be wasteful.
-        fileManager.saveVehicles(system.getVehicleList());
-        JOptionPane.showMessageDialog(this, "Thanks for your review!");
-        refreshVehicleTable();
+        try {
+            currentUser.leaveReview(system, vehicleId, rating, comment.trim());
+            fileManager.saveVehicles(system.getVehicleList());
+            JOptionPane.showMessageDialog(this, "Thanks for your review!");
+            refreshVehicleTable();
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to save review: " + e.getMessage());
+        }
     }
  
     public void refreshVehicleTable() {
@@ -392,6 +515,22 @@ public class CustomerFrame extends JFrame {
     }
  
     // ------------------------------------ Helpers -----------------------------------
+ 
+    public void refreshMyBookingsTable() {
+        myBookingsTableModel.setRowCount(0);
+        for (Booking booking : system.getBookingList()) {
+            if (booking.getCustomer().getName().equals(currentUser.getName())) {
+                myBookingsTableModel.addRow(new Object[]{
+                    booking.getBookingToken(),
+                    booking.getVehicle().getBrand() + " " + booking.getVehicle().getModel(),
+                    booking.rentalDurationDays,
+                    booking.getBookingDate(),
+                    booking.getStatus(),
+                    String.format("%.2f", booking.calculateTotalCost())
+                });
+            }
+        }
+    }
  
     private void refreshAnnouncementList() {
         StringBuilder sb = new StringBuilder();
@@ -415,22 +554,6 @@ public class CustomerFrame extends JFrame {
                 v.getIsAvailable() ? "Yes" : "No",
                 String.format("%.1f", v.getAverageRating())
             });
-        }
-    }
- 
-    private double parseDoubleOrDefault(String text, double defaultValue) {
-        try {
-            return Double.parseDouble(text.trim());
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
- 
-    private int parseIntOrDefault(String text, int defaultValue) {
-        try {
-            return Integer.parseInt(text.trim());
-        } catch (Exception e) {
-            return defaultValue;
         }
     }
 }

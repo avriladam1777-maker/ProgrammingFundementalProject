@@ -39,6 +39,9 @@ public class Booking {
     
     // Behaviour methods:
     public void cancel() {
+        if (!"CONFIRMED".equals(this.status)) {
+            return;
+        }
         this.status = "CANCELLED";
         if (vehicle != null) {
             vehicle.setIsAvailable(true);

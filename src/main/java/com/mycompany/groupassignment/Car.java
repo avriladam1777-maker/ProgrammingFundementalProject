@@ -13,11 +13,11 @@ public class Car extends Vehicle {
     public int mileage;
     public String transmissionType;
         
-    public Car(String vehicleID, String brand, String model, String imagePath, double price, 
+    public Car(String vehicleID, String brand, String model, double price, 
             boolean isAvailable, int numDoors, String transmissionType, int mileage)
         {
-        super(vehicleID, brand, model, imagePath, price, isAvailable);
-        this.numDoors = numDoors;
+        super(vehicleID, brand, model, price, isAvailable);
+        setNumDoors(numDoors);
         this.mileage = mileage;
         this.transmissionType = transmissionType;
     }
@@ -26,7 +26,7 @@ public class Car extends Vehicle {
         if(newDoors >= 2 && newDoors <= 6){
             this.numDoors = newDoors;
         }else{
-            System.out.println("Invalid number of doors.");//dont forgot to change this to String.format in the future
+            throw new IllegalArgumentException("Invalid number of doors.");
         }
     }
     

@@ -14,7 +14,6 @@ public abstract class Vehicle {
     private String vehicleID;
     private String brand;
     private String model;
-    private String imagePath;
     private double price;
     private boolean isAvailable;
     
@@ -22,13 +21,12 @@ public abstract class Vehicle {
     private List<Review> reviews;
     
     public Vehicle(String vehicleID, String brand, String model, 
-            String imagePath, double price, boolean isAvailable)
+            double price, boolean isAvailable)
         {
         this.vehicleID = vehicleID;
         this.brand = brand;
         this.model = model;
-        this.imagePath = imagePath;
-        this.price = price;
+        setPrice(price);
         this.isAvailable = isAvailable;
         this.reviews = new ArrayList<>();
     }
@@ -57,14 +55,6 @@ public abstract class Vehicle {
         this.model = newModel;
     }
     
-    public String getImagePath(){
-        return imagePath;
-    }
-    
-    public void setImagePath(String newImagePath){
-        this.imagePath = newImagePath;
-    }
-    
     public boolean getIsAvailable(){
         return isAvailable;
     }
@@ -81,7 +71,7 @@ public abstract class Vehicle {
         if(newPrice > 0){
             this.price = newPrice;
         }else{
-            System.out.println("Error. Invalid price given. Try again with a valid price.");
+            throw new IllegalArgumentException("Error. Invalid price given. Try again with a valid price.");
         }
     }
     

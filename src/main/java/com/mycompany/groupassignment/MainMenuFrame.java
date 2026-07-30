@@ -45,10 +45,12 @@ public class MainMenuFrame extends JFrame {
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 80, 20, 80));
  
         JButton customerButton = new JButton("Continue as Customer");
+        customerButton.setPreferredSize(new Dimension(200, 40));
         customerButton.addActionListener(e -> openCustomerFrame());
         buttonPanel.add(customerButton);
  
         JButton adminButton = new JButton("Admin Login");
+        adminButton.setPreferredSize(new Dimension(200, 40));
         adminButton.addActionListener(e -> openAdminLogin());
         buttonPanel.add(adminButton);
  
@@ -101,12 +103,20 @@ public class MainMenuFrame extends JFrame {
         // an admin logging out (DISPOSE_ON_CLOSE on AdminFrame) returns
         // here, unlike a customer session which always exits the whole app.
         AdminFrame adminFrame = new AdminFrame(system, fileManager);
-        adminFrame.setVisible(true);
+        if (adminFrame.isLoginSuccessful()) {
+            adminFrame.setVisible(true);
+        }
     }
  
     // ------------------------------------- main --------------------------------------
  
     public static void main(String[] args) {
+        System.out.println("IMPORTANT: Please delete your existing vehicles.txt file before running this program, as the data format has changed and the old array format will crash the new parser!");
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         VehicleServiceBookingSystem system = new VehicleServiceBookingSystem();
         FileManager fileManager = new FileManager();
         MainMenuFrame mainMenu = new MainMenuFrame(system, fileManager);

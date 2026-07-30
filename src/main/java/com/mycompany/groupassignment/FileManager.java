@@ -7,9 +7,12 @@ package com.mycompany.groupassignment;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 /**
@@ -51,20 +54,20 @@ public class FileManager {
                 if (v instanceof Car) {
                     Car c = (Car) v;
                     bw.write("CAR" + SEP_OUT + c.getVehicleID() + SEP_OUT + c.getBrand() + SEP_OUT
-                            + c.getModel() + SEP_OUT + c.getImagePath() + SEP_OUT + c.getPrice() + SEP_OUT
+                            + c.getModel() + SEP_OUT + c.getPrice() + SEP_OUT
                             + c.getIsAvailable() + SEP_OUT + c.getNumDoors() + SEP_OUT + c.transmissionType
                             + SEP_OUT + c.mileage + SEP_OUT + reviewsBlock);
                 } else if (v instanceof Motorcycle) {
                     Motorcycle m = (Motorcycle) v;
                     bw.write("MOTO" + SEP_OUT + m.getVehicleID() + SEP_OUT + m.getBrand() + SEP_OUT
-                            + m.getModel() + SEP_OUT + m.getImagePath() + SEP_OUT + m.getPrice() + SEP_OUT
+                            + m.getModel() + SEP_OUT + m.getPrice() + SEP_OUT
                             + m.getIsAvailable() + SEP_OUT + m.getEngineCC() + SEP_OUT + m.mileage
                             + SEP_OUT + reviewsBlock);
                 }
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("An error occurred while saving vehicles: " + e.getMessage());
+            throw new RuntimeException("An error occurred while saving vehicles: " + e.getMessage(), e);
         }
     } 
     
@@ -73,37 +76,44 @@ public class FileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(vehicleFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                // split(regex, -1) is required here: without it, a vehicle with
-                // zero reviews (empty trailing field) drops that last element
-                // and every index below shifts.
-                String[] p = line.split(SEP, -1);
-                String type = p[0];
-                boolean isAvailable = Boolean.parseBoolean(p[6]);
-                double price = Double.parseDouble(p[5]);
+                try {
+                    // split(regex, -1) is required here: without it, a vehicle with
+                    // zero reviews (empty trailing field) drops that last element
+                    // and every index below shifts.
+                    String[] p = line.split(SEP, -1);
+                    String type = p[0];
+                    boolean isAvailable = Boolean.parseBoolean(p[5]);
+                    double price = Double.parseDouble(p[4]);
  
-                if (type.equals("CAR")) {
-                    int numDoors = Integer.parseInt(p[7]);
-                    String transmissionType = p[8];
-                    int mileage = Integer.parseInt(p[9]);
-                    Car c = new Car(p[1], p[2], p[3], p[4], price, isAvailable,
-                            numDoors, transmissionType, mileage);
-                    for (Review r : parseReviewsBlock(p[10])) {
-                        c.addReview(r);
+                    if (type.equals("CAR")) {
+                        int numDoors = Integer.parseInt(p[6]);
+                        String transmissionType = p[7];
+                        int mileage = Integer.parseInt(p[8]);
+                        Car c = new Car(p[1], p[2], p[3], price, isAvailable,
+                                numDoors, transmissionType, mileage);
+                        for (Review r : parseReviewsBlock(p[9])) {
+                            c.addReview(r);
+                        }
+                        vehicles.add(c);
+                    } else if (type.equals("MOTO")) {
+                        int engineCC = Integer.parseInt(p[6]);
+                        int mileage = Integer.parseInt(p[7]);
+                        Motorcycle m = new Motorcycle(p[1], p[2], p[3], price, isAvailable,
+                                engineCC, mileage);
+                        for (Review r : parseReviewsBlock(p[8])) {
+                            m.addReview(r);
+                        }
+                        vehicles.add(m);
                     }
-                    vehicles.add(c);
-                } else if (type.equals("MOTO")) {
-                    int engineCC = Integer.parseInt(p[7]);
-                    int mileage = Integer.parseInt(p[8]);
-                    Motorcycle m = new Motorcycle(p[1], p[2], p[3], p[4], price, isAvailable,
-                            engineCC, mileage);
-                    for (Review r : parseReviewsBlock(p[9])) {
-                        m.addReview(r);
-                    }
-                    vehicles.add(m);
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | DateTimeParseException e) {
+                    System.out.println("Skipping malformed or legacy record: " + line);
+                    continue;
                 }
             }
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found, starting with empty list.");
         } catch (IOException e) {
-            System.out.println("An error occurred while loading vehicles: " + e.getMessage());
+            throw new RuntimeException("An error occurred while loading vehicles: " + e.getMessage(), e);
         }
         return vehicles;
     }
@@ -149,7 +159,7 @@ public class FileManager {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("An error occurred while saving bookings: " + e.getMessage());
+            throw new RuntimeException("An error occurred while saving bookings: " + e.getMessage(), e);
         }
     }
     
@@ -158,33 +168,40 @@ public class FileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(bookingFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] p = line.split(SEP, -1);
-                String bookingToken = p[0];
-                String customerId = p[1];
-                String vehicleId = p[2];
-                String deliveryAddress = p[3];
-                int rentalDurationDays = Integer.parseInt(p[4]);
-                LocalDate bookingDate = LocalDate.parse(p[5]);
-                String savedStatus = p[6];
+                try {
+                    String[] p = line.split(SEP, -1);
+                    String bookingToken = p[0];
+                    String customerId = p[1];
+                    String vehicleId = p[2];
+                    String deliveryAddress = p[3];
+                    int rentalDurationDays = Integer.parseInt(p[4]);
+                    LocalDate bookingDate = LocalDate.parse(p[5]);
+                    String savedStatus = p[6];
  
-                User customer = findUserById(userList, customerId);
-                Vehicle vehicle = findVehicleById(vehicleList, vehicleId);
+                    User customer = findUserById(userList, customerId);
+                    Vehicle vehicle = findVehicleById(vehicleList, vehicleId);
  
-                if (customer == null || vehicle == null) {
-                    System.out.println("Skipping booking " + bookingToken
-                            + ": customer or vehicle no longer exists.");
+                    if (customer == null || vehicle == null) {
+                        System.out.println("Skipping booking " + bookingToken
+                                + ": customer or vehicle no longer exists.");
+                        continue;
+                    }
+ 
+                    // Booking's real constructor takes status directly (confirmed
+                    // against Booking.java) — no need to construct-then-overwrite,
+                    // the saved status goes straight in.
+                    Booking booking = new Booking(bookingToken, customer, vehicle,
+                            deliveryAddress, rentalDurationDays, bookingDate, savedStatus);
+                    bookings.add(booking);
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | DateTimeParseException e) {
+                    System.out.println("Skipping malformed or legacy record: " + line);
                     continue;
                 }
- 
-                // Booking's real constructor takes status directly (confirmed
-                // against Booking.java) — no need to construct-then-overwrite,
-                // the saved status goes straight in.
-                Booking booking = new Booking(bookingToken, customer, vehicle,
-                        deliveryAddress, rentalDurationDays, bookingDate, savedStatus);
-                bookings.add(booking);
             }
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found, starting with empty list.");
         } catch (IOException e) {
-            System.out.println("An error occurred while loading bookings: " + e.getMessage());
+            throw new RuntimeException("An error occurred while loading bookings: " + e.getMessage(), e);
         }
         return bookings;
     }
@@ -219,7 +236,7 @@ public class FileManager {
                 bw.newLine();
             }
         }catch(IOException e){
-            System.out.println("An error occurred while saving admins: " + e.getMessage());
+            throw new RuntimeException("An error occurred while saving admins: " + e.getMessage(), e);
         }
     }
     
@@ -228,19 +245,25 @@ public class FileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(adminFile))){
             String line;
             while ((line = br.readLine()) != null){
-                String[] p = line.split(SEP, -1);
-                // Backward-compatible: an old admins.txt saved before this
-                // change only has 3 fields. If the new columns aren't
-                // there, default to sub-admin/active rather than crashing -
-                // ensureMainAdminExists() will still create the one real
-                // main admin on top of this if none is found.
-                boolean isMainAdmin = (p.length > 3) && Boolean.parseBoolean(p[3]);
-                boolean isActive = (p.length > 4) ? Boolean.parseBoolean(p[4]) : true;
-                admins.add(new Admin(p[0], p[1], p[2], isMainAdmin, isActive));
+                try {
+                    String[] p = line.split(SEP, -1);
+                    // Backward-compatible: an old admins.txt saved before this
+                    // change only has 3 fields. If the new columns aren't
+                    // there, default to sub-admin/active rather than crashing -
+                    // ensureMainAdminExists() will still create the one real
+                    // main admin on top of this if none is found.
+                    boolean isMainAdmin = (p.length > 3) && Boolean.parseBoolean(p[3]);
+                    boolean isActive = (p.length > 4) ? Boolean.parseBoolean(p[4]) : true;
+                    admins.add(new Admin(p[0], p[1], p[2], isMainAdmin, isActive));
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | DateTimeParseException e) {
+                    System.out.println("Skipping malformed or legacy record: " + line);
+                    continue;
+                }
             }
-        }
-        catch (IOException e){
-            System.out.println("An error occurred while loading admins: " + e.getMessage());
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found, starting with empty list.");
+        } catch (IOException e) {
+            throw new RuntimeException("An error occurred while loading admins: " + e.getMessage(), e);
         }
         return admins;
     }
@@ -254,7 +277,7 @@ public class FileManager {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("An error occurred while saving announcements: " + e.getMessage());
+            throw new RuntimeException("An error occurred while saving announcements: " + e.getMessage(), e);
         }
     }
     
@@ -263,11 +286,18 @@ public class FileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(announcementFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] p = line.split(SEP, -1);
-                announcements.add(new Announcement(p[0], p[1], LocalDate.parse(p[2])));
+                try {
+                    String[] p = line.split(SEP, -1);
+                    announcements.add(new Announcement(p[0], p[1], LocalDate.parse(p[2])));
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | DateTimeParseException e) {
+                    System.out.println("Skipping malformed or legacy record: " + line);
+                    continue;
+                }
             }
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found, starting with empty list.");
         } catch (IOException e) {
-            System.out.println("An error occurred while loading announcements: " + e.getMessage());
+            throw new RuntimeException("An error occurred while loading announcements: " + e.getMessage(), e);
         }
         return announcements;
     }
@@ -282,7 +312,7 @@ public class FileManager {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("An error occurred while saving users: " + e.getMessage());
+            throw new RuntimeException("An error occurred while saving users: " + e.getMessage(), e);
         }
     }
     
@@ -291,12 +321,18 @@ public class FileManager {
         try (BufferedReader br = new BufferedReader(new FileReader(userFile))){
             String line;
             while ((line = br.readLine()) != null){
-                String[] p = line.split(SEP, -1);
-                users.add(new User(p[0], p[1], Integer.parseInt(p[2]), p[3], p[4]));
+                try {
+                    String[] p = line.split(SEP, -1);
+                    users.add(new User(p[0], p[1], Integer.parseInt(p[2]), p[3], p[4]));
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException | DateTimeParseException e) {
+                    System.out.println("Skipping malformed or legacy record: " + line);
+                    continue;
+                }
             }
-        }
-        catch (IOException e){
-            System.out.println("An error occurred while loading users: " + e.getMessage());
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found, starting with empty list.");
+        } catch (IOException e) {
+            throw new RuntimeException("An error occurred while loading users: " + e.getMessage(), e);
         }
         return users;
     }
