@@ -132,20 +132,44 @@ public class VehicleServiceBookingSystem {
     /**
      * AdminFrame needs some way to check a login attempt against
      * adminList - nothing else in the diagram provides this. Returns the
-     * matching Admin, or null if no admin matches the given credentials.
+     * matching Admin, or null if no admin matches the given credentials
+     * OR if that admin has been deactivated by the main admin.
      * @param username the admin username to check
      * @param password the admin password to check
-     * @return the matching Admin, or null if no admin matches both
+     * @return the matching, active Admin, or null
      */
     
     public Admin authenticateAdmin(String username, String password) {
         for (Admin admin : adminList) {
             if (admin.getAdminUsername().equals(username)
                     && admin.getAdminPass().equals(password)) {
+                if (!admin.isActive()) {
+                    // Blocked sub-admin - treated exactly like a failed
+                    // login, doesn't reveal the account exists but is disabled.
+                    return null;
+                }
                 return admin;
             }
         }
         return null;
+    }
+    
+    /**
+     * Guarantees exactly one main admin always exists. Called once from
+     * MainMenuFrame.loadAllData(), right after admins are loaded from
+     * file, before anyone gets a chance to log in. Never creates a
+     * second main admin if one is already present - this is the "hard
+     * code: one and only main admin" rule.
+     */
+    public void ensureMainAdminExists() {
+        for (Admin a : adminList) {
+            if (a.isMainAdmin()) {
+                return;
+            }
+        }
+        // Hardcoded main admin credentials - change these before your demo/submission.
+        Admin mainAdmin = new Admin("MAIN-ADMIN", "mainadmin", "changeme123", true, true);
+        adminList.add(mainAdmin);
     }
     
     /**

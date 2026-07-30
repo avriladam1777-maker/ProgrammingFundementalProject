@@ -72,9 +72,16 @@ public class MainMenuFrame extends JFrame {
         List<Admin> admins = fileManager.loadAdmins();
         system.getAdminList().addAll(admins);
  
+        // New: guarantee exactly one main admin exists, then persist it
+        // immediately in case this was the very first run (fresh/missing
+        // admins.txt) - otherwise the seeded main admin would only live
+        // in memory and vanish on the next restart.
+        system.ensureMainAdminExists();
+        fileManager.saveAdmins(system.getAdminList());
+ 
         List<Announcement> announcements = fileManager.loadAnnouncements();
         system.getAnnouncementList().addAll(announcements);
- 
+        
         // Must come after the vehicle/user loads above.
         List<Booking> bookings = fileManager.loadBookings(system.getUserList(), system.getVehicleList());
         system.getBookingList().addAll(bookings);
@@ -90,13 +97,9 @@ public class MainMenuFrame extends JFrame {
     }
  
     public void openAdminLogin() {
-        // NOTE: AdminFrame doesn't exist yet - this line will not compile
-        // until we build it next. Left in deliberately as the forward
-        // contract, matching how openCustomerFrame() calls CustomerFrame
-        // above. MainMenuFrame is intentionally left visible behind it for
-        // now - whether an admin logging out should return here or exit
-        // the whole app is still an open decision, revisit when AdminFrame
-        // is built.
+        // MainMenuFrame is intentionally left visible behind AdminFrame -
+        // an admin logging out (DISPOSE_ON_CLOSE on AdminFrame) returns
+        // here, unlike a customer session which always exits the whole app.
         AdminFrame adminFrame = new AdminFrame(system, fileManager);
         adminFrame.setVisible(true);
     }

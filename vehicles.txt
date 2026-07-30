@@ -1,0 +1,1 @@
+CAR|car1|BMW|M3|"C:\Users\User\OneDrive\Desktop\Wallpaper\photo_2020-09-22_21-33-14.jpg"|500.0|false|5|V8|4000|

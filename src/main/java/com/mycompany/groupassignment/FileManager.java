@@ -212,7 +212,10 @@ public class FileManager {
     public void saveAdmins(List<Admin> admins){
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(adminFile))){
             for (Admin a : admins){
-                bw.write(a.getAdminID() + SEP_OUT + a.getAdminUsername() + SEP_OUT + a.getAdminPass());
+                // Two new fields appended: isMainAdmin, isActive - needed
+                // for the main/sub-admin hierarchy.
+                bw.write(a.getAdminID() + SEP_OUT + a.getAdminUsername() + SEP_OUT + a.getAdminPass()
+                        + SEP_OUT + a.isMainAdmin() + SEP_OUT + a.isActive());
                 bw.newLine();
             }
         }catch(IOException e){
@@ -226,7 +229,14 @@ public class FileManager {
             String line;
             while ((line = br.readLine()) != null){
                 String[] p = line.split(SEP, -1);
-                admins.add(new Admin(p[0], p[1], p[2]));
+                // Backward-compatible: an old admins.txt saved before this
+                // change only has 3 fields. If the new columns aren't
+                // there, default to sub-admin/active rather than crashing -
+                // ensureMainAdminExists() will still create the one real
+                // main admin on top of this if none is found.
+                boolean isMainAdmin = (p.length > 3) && Boolean.parseBoolean(p[3]);
+                boolean isActive = (p.length > 4) ? Boolean.parseBoolean(p[4]) : true;
+                admins.add(new Admin(p[0], p[1], p[2], isMainAdmin, isActive));
             }
         }
         catch (IOException e){

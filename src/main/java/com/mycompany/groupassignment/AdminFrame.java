@@ -53,6 +53,12 @@ public class AdminFrame extends JFrame {
     private JTextArea announcementField;
     private JTextArea announcementListArea;
  
+    // Manage Sub-Admins tab (main admin only)
+    private JTable subAdminTable;
+    private DefaultTableModel subAdminTableModel;
+    private JTextField newSubAdminUsernameField;
+    private JPasswordField newSubAdminPasswordField;
+    
     // Constructor:
     // system and fileManager are handed in by MainMenuFrame - same rule
     // every other class in this project follows.
@@ -79,8 +85,15 @@ public class AdminFrame extends JFrame {
  
         initComponents();
         onViewVehicleStatus();
-        onViewBookings();
-        refreshAnnouncementList();
+        // Bookings, announcements, and sub-admin management are main-admin
+        // only - the components backing them don't even exist for a
+        // sub-admin session (see initComponents()), so guard the refresh
+        // calls the same way.
+        if (currentAdmin.isMainAdmin()) {
+            onViewBookings();
+            refreshAnnouncementList();
+            refreshSubAdminTable();
+        }
     }
  
     // ---------------------------------- Login -----------------------------------
@@ -101,6 +114,9 @@ public class AdminFrame extends JFrame {
  
             String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
+            // A deactivated sub-admin's credentials will still be correct,
+            // but authenticateAdmin() returns null for them anyway - same
+            // message as a wrong password, deliberately not revealing why.
             Admin admin = system.authenticateAdmin(username, password);
  
             if (admin != null) {
@@ -122,8 +138,17 @@ public class AdminFrame extends JFrame {
  
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Vehicles", buildVehiclesTab());
-        tabs.addTab("Bookings", buildBookingsTab());
-        tabs.addTab("Announcements", buildAnnouncementsTab());
+        
+        // Hard rule from the updated requirements: sub-admins only get
+        // vehicle management. Everything else - bookings, announcements,
+        // managing other admins - is main-admin only, enforced simply by
+        // never building those tabs for a sub-admin session.
+        if (currentAdmin.isMainAdmin()) {
+            tabs.addTab("Bookings", buildBookingsTab());
+            tabs.addTab("Announcements", buildAnnouncementsTab());
+            tabs.addTab("Manage Sub-Admins", buildManageAdminsTab());
+        }
+        
         add(tabs, BorderLayout.CENTER);
  
         add(buildSaveBar(), BorderLayout.SOUTH);
@@ -277,6 +302,52 @@ public class AdminFrame extends JFrame {
         return panel;
     }
  
+    private JPanel buildManageAdminsTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+ 
+        JPanel addRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        addRow.setBorder(BorderFactory.createTitledBorder("Add Sub-Admin"));
+        newSubAdminUsernameField = new JTextField(10);
+        newSubAdminPasswordField = new JPasswordField(10);
+        addRow.add(new JLabel("Username:"));
+        addRow.add(newSubAdminUsernameField);
+        addRow.add(new JLabel("Password:"));
+        addRow.add(newSubAdminPasswordField);
+        JButton addSubAdminButton = new JButton("Add Sub-Admin");
+        addSubAdminButton.addActionListener(e -> onAddSubAdmin());
+        addRow.add(addSubAdminButton);
+        panel.add(addRow, BorderLayout.NORTH);
+ 
+        String[] columns = {"Admin ID", "Username", "Active"};
+        subAdminTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // Returning Boolean.class for the "Active" column is the
+                // entire trick - Swing renders Boolean columns as checkboxes
+                // automatically. This is what makes it "as simple as a checkbox".
+                return columnIndex == 2 ? Boolean.class : String.class;
+            }
+ 
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 2; // only the checkbox is clickable
+            }
+        };
+        subAdminTable = new JTable(subAdminTableModel);
+        subAdminTableModel.addTableModelListener(e -> {
+            if (e.getColumn() == 2) {
+                onToggleSubAdminActive(e.getFirstRow());
+            }
+        });
+ 
+        JScrollPane scrollPane = new JScrollPane(subAdminTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder(
+                "Sub-Admins  (uncheck Active to block their access)"));
+        panel.add(scrollPane, BorderLayout.CENTER);
+ 
+        return panel;
+    }
+    
     private JPanel buildSaveBar() {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton saveButton = new JButton("Save All Changes");
@@ -320,6 +391,38 @@ public class AdminFrame extends JFrame {
         currentAdmin.addVehicle(system, vehicle);
         fileManager.saveVehicles(system.getVehicleList()); // only vehicleList changed
         JOptionPane.showMessageDialog(this, "Vehicle added.");
+        onViewVehicleStatus();
+    }
+    
+    public void onUpdateVehicle() {
+        int row = vehicleStatusTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select a vehicle from the table first.");
+            return;
+        }
+ 
+        String vehicleId = (String) vehicleStatusTableModel.getValueAt(row, 0);
+        String brand = brandField.getText();
+        String model = modelField.getText();
+        String imagePath = imagePathField.getText();
+        double price = parseDoubleOrDefault(priceField.getText(), -1);
+ 
+        if (price <= 0) {
+            JOptionPane.showMessageDialog(this, "Enter a valid price above 0 in the form above, then Update.");
+            return;
+        }
+ 
+        // Admin.updateVehicle() only touches brand/model/price/imagePath
+        // (confirmed against the real method signature) - type-specific
+        // fields and availability aren't editable through Update.
+        boolean updated = currentAdmin.updateVehicle(system, vehicleId, brand, model, price, imagePath);
+        if (!updated) {
+            JOptionPane.showMessageDialog(this, "Vehicle not found - nothing was updated.");
+            return;
+        }
+ 
+        fileManager.saveVehicles(system.getVehicleList());
+        JOptionPane.showMessageDialog(this, "Vehicle updated.");
         onViewVehicleStatus();
     }
  
@@ -379,6 +482,57 @@ public class AdminFrame extends JFrame {
                 v.getIsAvailable() ? "Yes" : "No",
                 String.format("%.1f", v.getAverageRating())
             });
+        }
+    }
+    
+    // --- New: sub-admin management (main admin only) ---
+ 
+    public void onAddSubAdmin() {
+        String username = newSubAdminUsernameField.getText();
+        String password = new String(newSubAdminPasswordField.getPassword());
+        if (username == null || username.trim().isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter a username and password for the new sub-admin.");
+            return;
+        }
+ 
+        // currentAdmin.createSubAdmin() itself refuses and returns null if
+        // this admin isn't the main admin - this check is redundant since
+        // this tab only exists for the main admin, but cheap insurance.
+        Admin subAdmin = currentAdmin.createSubAdmin(system, username.trim(), password);
+        if (subAdmin == null) {
+            JOptionPane.showMessageDialog(this, "Only the main admin can add sub-admins.");
+            return;
+        }
+ 
+        fileManager.saveAdmins(system.getAdminList());
+        newSubAdminUsernameField.setText("");
+        newSubAdminPasswordField.setText("");
+        JOptionPane.showMessageDialog(this, "Sub-admin added.");
+        refreshSubAdminTable();
+    }
+ 
+    private void onToggleSubAdminActive(int row) {
+        String subAdminId = (String) subAdminTableModel.getValueAt(row, 0);
+        boolean newActive = (Boolean) subAdminTableModel.getValueAt(row, 2);
+ 
+        boolean success = currentAdmin.setSubAdminActive(system, subAdminId, newActive);
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Could not update that sub-admin's access.");
+            refreshSubAdminTable(); // revert the checkbox to the real saved state
+            return;
+        }
+ 
+        // The checkbox toggle IS the action - save immediately, same
+        // convention as every other mutating action in this project.
+        fileManager.saveAdmins(system.getAdminList());
+    }
+ 
+    private void refreshSubAdminTable() {
+        subAdminTableModel.setRowCount(0);
+        for (Admin a : system.getAdminList()) {
+            if (!a.isMainAdmin()) { // the main admin itself is never listed here - nothing to toggle
+                subAdminTableModel.addRow(new Object[]{a.getAdminID(), a.getAdminUsername(), a.isActive()});
+            }
         }
     }
  
