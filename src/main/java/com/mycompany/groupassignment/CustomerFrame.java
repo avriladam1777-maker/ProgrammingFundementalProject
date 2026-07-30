@@ -41,6 +41,8 @@ public class CustomerFrame extends JFrame {
  
     private JLabel welcomeLabel;
  
+    private JTextArea announcementListArea;
+ 
     // Constructor:
     // system and fileManager are handed in by MainMenuFrame - never
     // constructed here, same rule every other class in this project follows.
@@ -61,6 +63,7 @@ public class CustomerFrame extends JFrame {
  
         initComponents();
         refreshVehicleTable();
+        refreshAnnouncementList();
     }
  
     // ---------------------------- Login / registration ----------------------------
@@ -131,9 +134,41 @@ public class CustomerFrame extends JFrame {
         welcomeLabel.setBorder(BorderFactory.createEmptyBorder(6, 10, 0, 10));
         add(welcomeLabel, BorderLayout.PAGE_START);
  
-        add(buildSearchPanel(), BorderLayout.NORTH);
-        add(buildTablePanel(), BorderLayout.CENTER);
-        add(buildActionPanel(), BorderLayout.SOUTH);
+        // New: everything that used to sit directly on the frame now lives
+        // inside a "Book a Vehicle" tab, alongside a new read-only
+        // Announcements tab. Chosen over a login-time pop-up because it lets
+        // the customer check for new posts anytime during their session via
+        // Refresh, rather than only ever seeing a one-time snapshot at login.
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Book a Vehicle", buildBookingTab());
+        tabs.addTab("Announcements", buildAnnouncementsTab());
+        add(tabs, BorderLayout.CENTER);
+    }
+ 
+    private JPanel buildBookingTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.add(buildSearchPanel(), BorderLayout.NORTH);
+        panel.add(buildTablePanel(), BorderLayout.CENTER);
+        panel.add(buildActionPanel(), BorderLayout.SOUTH);
+        return panel;
+    }
+ 
+    private JPanel buildAnnouncementsTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+ 
+        announcementListArea = new JTextArea();
+        announcementListArea.setEditable(false);
+        JScrollPane listScroll = new JScrollPane(announcementListArea);
+        listScroll.setBorder(BorderFactory.createTitledBorder("Announcements"));
+        panel.add(listScroll, BorderLayout.CENTER);
+ 
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(e -> refreshAnnouncementList());
+        JPanel refreshRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshRow.add(refreshButton);
+        panel.add(refreshRow, BorderLayout.SOUTH);
+ 
+        return panel;
     }
  
     private JPanel buildSearchPanel() {
@@ -357,6 +392,17 @@ public class CustomerFrame extends JFrame {
     }
  
     // ------------------------------------ Helpers -----------------------------------
+ 
+    private void refreshAnnouncementList() {
+        StringBuilder sb = new StringBuilder();
+        for (Announcement a : system.getAnnouncementList()) {
+            sb.append("[").append(a.datePosted).append("] ").append(a.content).append("\n\n");
+        }
+        if (sb.length() == 0) {
+            sb.append("No announcements yet.");
+        }
+        announcementListArea.setText(sb.toString());
+    }
  
     private void populateTable(List<Vehicle> vehicles) {
         vehicleTableModel.setRowCount(0);
