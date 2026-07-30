@@ -174,7 +174,7 @@ public class VehicleServiceBookingSystem {
             }
         }
         // Hardcoded main admin credentials - change these before your demo/submission.
-        Admin mainAdmin = new Admin("MAIN-ADMIN", "mainadmin", "changeme123", true, true);
+        Admin mainAdmin = new Admin("MAIN-ADMIN", "mainadmin", "wasd123", true, true);
         adminList.add(mainAdmin);
     }
     
