@@ -51,7 +51,8 @@ public class AdminFrame extends JFrame {
  
     // Announcements tab
     private JTextArea announcementField;
-    private JTextArea announcementListArea;
+    private JTable announcementTable;
+    private DefaultTableModel announcementTableModel;
  
     // Manage Sub-Admins tab (main admin only)
     private JTable subAdminTable;
@@ -215,8 +216,11 @@ public class AdminFrame extends JFrame {
  
         JButton addButton = new JButton("Add Vehicle");
         addButton.addActionListener(e -> onAddVehicle());
+        JButton updateButton = new JButton("Update Selected Vehicle");
+        updateButton.addActionListener(e -> onUpdateVehicle());
         JPanel addRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addRow.add(addButton);
+        addRow.add(updateButton);
         form.add(addRow);
  
         return form;
@@ -282,22 +286,34 @@ public class AdminFrame extends JFrame {
  
     private JPanel buildAnnouncementsTab() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
- 
-        announcementListArea = new JTextArea();
-        announcementListArea.setEditable(false);
-        JScrollPane listScroll = new JScrollPane(announcementListArea);
+
+        String[] columns = {"Message ID", "Date", "Content"};
+        announcementTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        announcementTable = new JTable(announcementTableModel);
+        announcementTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane listScroll = new JScrollPane(announcementTable);
         listScroll.setBorder(BorderFactory.createTitledBorder("Posted Announcements"));
         panel.add(listScroll, BorderLayout.CENTER);
- 
+
         JPanel postRow = new JPanel(new BorderLayout(4, 4));
         postRow.setBorder(BorderFactory.createTitledBorder("Post New Announcement"));
         announcementField = new JTextArea(3, 20);
         postRow.add(new JScrollPane(announcementField), BorderLayout.CENTER);
- 
+
+        JPanel actionCol = new JPanel(new GridLayout(2, 1, 4, 4));
         JButton postButton = new JButton("Post Announcement");
         postButton.addActionListener(e -> onPostAnnouncement());
-        postRow.add(postButton, BorderLayout.EAST);
- 
+        JButton deleteButton = new JButton("Delete Selected Announcement");
+        deleteButton.addActionListener(e -> onDeleteAnnouncement());
+        actionCol.add(postButton);
+        actionCol.add(deleteButton);
+        postRow.add(actionCol, BorderLayout.EAST);
+
         panel.add(postRow, BorderLayout.SOUTH);
         return panel;
     }
@@ -453,6 +469,25 @@ public class AdminFrame extends JFrame {
         JOptionPane.showMessageDialog(this, "Announcement posted.");
         refreshAnnouncementList();
     }
+    
+    public void onDeleteAnnouncement() {
+        int row = announcementTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select an announcement from the table first.");
+            return;
+        }
+
+        String messageId = (String) announcementTableModel.getValueAt(row, 0);
+        boolean deleted = currentAdmin.deleteAnnouncement(system, messageId);
+        if (!deleted) {
+            JOptionPane.showMessageDialog(this, "Announcement not found - nothing was deleted.");
+            return;
+        }
+
+        fileManager.saveAnnouncements(system.getAnnouncementList());
+        JOptionPane.showMessageDialog(this, "Announcement deleted.");
+        refreshAnnouncementList();
+    }
  
     public void onViewBookings() {
         bookingsTableModel.setRowCount(0);
@@ -548,11 +583,14 @@ public class AdminFrame extends JFrame {
     // ------------------------------------ Helpers ---------------------------------
  
     private void refreshAnnouncementList() {
-        StringBuilder sb = new StringBuilder();
+        announcementTableModel.setRowCount(0);
         for (Announcement a : system.getAnnouncementList()) {
-            sb.append("[").append(a.datePosted).append("] ").append(a.content).append("\n\n");
+            announcementTableModel.addRow(new Object[]{
+                a.getMessageID(),
+                a.datePosted,
+                a.content
+            });
         }
-        announcementListArea.setText(sb.toString());
     }
  
     private double parseDoubleOrDefault(String text, double defaultValue) {

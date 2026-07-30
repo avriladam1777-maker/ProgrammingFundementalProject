@@ -118,6 +118,10 @@ public class Admin {
         return false;
     }
     
+    public boolean deleteAnnouncement(VehicleServiceBookingSystem system, String messageId) {
+        return system.getAnnouncementList().removeIf(a -> a.getMessageID().equals(messageId));
+    }
+    
     // Getters / Setters:
     
     public void setAdminID(String adminId) {
