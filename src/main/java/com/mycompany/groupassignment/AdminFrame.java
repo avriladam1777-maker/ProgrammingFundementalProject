@@ -16,9 +16,9 @@ import java.util.List;
 public class AdminFrame extends JFrame {
  
     // Attributes (per UML):
-    private VehicleServiceBookingSystem system;
-    private Admin currentAdmin;
-    private FileManager fileManager;
+    private final VehicleServiceBookingSystem system;
+    private final Admin currentAdmin;
+    private final FileManager fileManager;
  
     // --- GUI components (not in UML - Swing plumbing) ---
     private JLabel welcomeLabel;
@@ -51,8 +51,7 @@ public class AdminFrame extends JFrame {
  
     // Announcements tab
     private JTextArea announcementField;
-    private JTable announcementTable;
-    private DefaultTableModel announcementTableModel;
+    private JTextArea announcementListArea;
  
     // Manage Sub-Admins tab (main admin only)
     private JTable subAdminTable;
@@ -161,11 +160,20 @@ public class AdminFrame extends JFrame {
         panel.add(buildAddVehicleForm(), BorderLayout.NORTH);
         panel.add(buildVehicleStatusTable(), BorderLayout.CENTER);
  
+        // Update reuses the Add Vehicle form fields (brand/model/price/imagePath)
+        // against whichever row is selected below - onUpdateVehicle() already
+        // expected this ("...in the form above, then Update"), it just had no
+        // button wired to it yet.
+        JButton updateButton = new JButton("Update Selected Vehicle");
+        updateButton.addActionListener(e -> onUpdateVehicle());
+ 
         JButton removeButton = new JButton("Remove Selected Vehicle");
         removeButton.addActionListener(e -> onRemoveVehicle());
-        JPanel removeRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        removeRow.add(removeButton);
-        panel.add(removeRow, BorderLayout.SOUTH);
+ 
+        JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionRow.add(updateButton);
+        actionRow.add(removeButton);
+        panel.add(actionRow, BorderLayout.SOUTH);
  
         return panel;
     }
@@ -216,11 +224,8 @@ public class AdminFrame extends JFrame {
  
         JButton addButton = new JButton("Add Vehicle");
         addButton.addActionListener(e -> onAddVehicle());
-        JButton updateButton = new JButton("Update Selected Vehicle");
-        updateButton.addActionListener(e -> onUpdateVehicle());
         JPanel addRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addRow.add(addButton);
-        addRow.add(updateButton);
         form.add(addRow);
  
         return form;
@@ -286,34 +291,22 @@ public class AdminFrame extends JFrame {
  
     private JPanel buildAnnouncementsTab() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
-
-        String[] columns = {"Message ID", "Date", "Content"};
-        announcementTableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        announcementTable = new JTable(announcementTableModel);
-        announcementTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane listScroll = new JScrollPane(announcementTable);
+ 
+        announcementListArea = new JTextArea();
+        announcementListArea.setEditable(false);
+        JScrollPane listScroll = new JScrollPane(announcementListArea);
         listScroll.setBorder(BorderFactory.createTitledBorder("Posted Announcements"));
         panel.add(listScroll, BorderLayout.CENTER);
-
+ 
         JPanel postRow = new JPanel(new BorderLayout(4, 4));
         postRow.setBorder(BorderFactory.createTitledBorder("Post New Announcement"));
         announcementField = new JTextArea(3, 20);
         postRow.add(new JScrollPane(announcementField), BorderLayout.CENTER);
-
-        JPanel actionCol = new JPanel(new GridLayout(2, 1, 4, 4));
+ 
         JButton postButton = new JButton("Post Announcement");
         postButton.addActionListener(e -> onPostAnnouncement());
-        JButton deleteButton = new JButton("Delete Selected Announcement");
-        deleteButton.addActionListener(e -> onDeleteAnnouncement());
-        actionCol.add(postButton);
-        actionCol.add(deleteButton);
-        postRow.add(actionCol, BorderLayout.EAST);
-
+        postRow.add(postButton, BorderLayout.EAST);
+ 
         panel.add(postRow, BorderLayout.SOUTH);
         return panel;
     }
@@ -469,25 +462,6 @@ public class AdminFrame extends JFrame {
         JOptionPane.showMessageDialog(this, "Announcement posted.");
         refreshAnnouncementList();
     }
-    
-    public void onDeleteAnnouncement() {
-        int row = announcementTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select an announcement from the table first.");
-            return;
-        }
-
-        String messageId = (String) announcementTableModel.getValueAt(row, 0);
-        boolean deleted = currentAdmin.deleteAnnouncement(system, messageId);
-        if (!deleted) {
-            JOptionPane.showMessageDialog(this, "Announcement not found - nothing was deleted.");
-            return;
-        }
-
-        fileManager.saveAnnouncements(system.getAnnouncementList());
-        JOptionPane.showMessageDialog(this, "Announcement deleted.");
-        refreshAnnouncementList();
-    }
  
     public void onViewBookings() {
         bookingsTableModel.setRowCount(0);
@@ -583,14 +557,11 @@ public class AdminFrame extends JFrame {
     // ------------------------------------ Helpers ---------------------------------
  
     private void refreshAnnouncementList() {
-        announcementTableModel.setRowCount(0);
+        StringBuilder sb = new StringBuilder();
         for (Announcement a : system.getAnnouncementList()) {
-            announcementTableModel.addRow(new Object[]{
-                a.getMessageID(),
-                a.datePosted,
-                a.content
-            });
+            sb.append("[").append(a.datePosted).append("] ").append(a.content).append("\n\n");
         }
+        announcementListArea.setText(sb.toString());
     }
  
     private double parseDoubleOrDefault(String text, double defaultValue) {
