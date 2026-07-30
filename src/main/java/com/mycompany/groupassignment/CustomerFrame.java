@@ -141,17 +141,21 @@ public class CustomerFrame extends JFrame {
     }
  
     private int readAge() {
-        String ageText = JOptionPane.showInputDialog(this, "Enter your age:");
-        if (ageText == null) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(ageText.trim());
-        } catch (Exception e) {
-            // TODO exception-handling pass: reject/re-prompt on invalid age
-            // instead of silently defaulting to 0.
-            JOptionPane.showMessageDialog(this, "Invalid age entered - defaulting to 0.");
-            return 0;
+        while (true) {
+            String ageText = JOptionPane.showInputDialog(this, "Enter your age:");
+            if (ageText == null) {
+                return -1;
+            }
+            try {
+                int age = Integer.parseInt(ageText.trim());
+                if (age <= 0) {
+                    JOptionPane.showMessageDialog(this, "Please enter a valid age.");
+                } else {
+                    return age;
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid age.");
+            }
         }
     }
  
