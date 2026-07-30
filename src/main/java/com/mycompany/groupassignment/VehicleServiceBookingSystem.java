@@ -3,17 +3,17 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.mycompany.groupassignment;
-
+ 
 /**
  *
  * @author User
  */
-
+ 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
+ 
 public class VehicleServiceBookingSystem {
     
     // Attributes:
@@ -23,6 +23,11 @@ public class VehicleServiceBookingSystem {
     private List<Announcement> announcementList;
     private List<User> userList;
     
+    // Constructor:
+    // REQUIRED FIX (found during GUI testing): this constructor was
+    // missing entirely before. Without it, all five lists default to
+    // null, and MainMenuFrame.loadAllData() throws a
+    // NullPointerException the instant it tries to add anything.
     public VehicleServiceBookingSystem() {
         this.vehicleList = new ArrayList<>();
         this.bookingList = new ArrayList<>();
@@ -31,25 +36,26 @@ public class VehicleServiceBookingSystem {
         this.userList = new ArrayList<>();
     }
     
+    
     // Read access:
     // All five return the live list, not a copy
     
     public List<Vehicle> getVehicleList() {
         return vehicleList;
     }
-
+ 
     public List<Booking> getBookingList() {
         return bookingList;
     }
-
+ 
     public List<Admin> getAdminList() {
         return adminList;
     }
-
+ 
     public List<Announcement> getAnnouncementList() {
         return announcementList;
     }
-
+ 
     public List<User> getUserList() {
         return userList;
     }
@@ -64,7 +70,7 @@ public class VehicleServiceBookingSystem {
     public void registerAdmin(Admin admin) {
         adminList.add(admin);
     }
-
+ 
     public void registerUser(User user) {
         userList.add(user);
     }
@@ -74,7 +80,7 @@ public class VehicleServiceBookingSystem {
     public List<Vehicle> searchVehicles(String keyword, double minPrice, double maxPrice) {
         List<Vehicle> results = new ArrayList<>();
         String lowerKeyword = (keyword == null) ? "" : keyword.toLowerCase();
-
+ 
         for (Vehicle vehicle : vehicleList) {
             if (!vehicle.getIsAvailable()) {
                 continue;
@@ -109,11 +115,11 @@ public class VehicleServiceBookingSystem {
         if (vehicle == null || !vehicle.getIsAvailable()) {
             return null; // TODO exception-handling pass: throw instead of returning null
         }
-
+ 
         String bookingToken = UUID.randomUUID().toString();
         Booking booking = new Booking(bookingToken, customer, vehicle, deliveryAddress,
                 rentalDurationDays, LocalDate.now(), "CONFIRMED");
-
+ 
         vehicle.setIsAvailable(false);
         bookingList.add(booking);
         return booking;
@@ -173,18 +179,39 @@ public class VehicleServiceBookingSystem {
     }
     
     /**
-     * Symmetric with findVehicleById below. Worth a deliberate decision:
-     * now that User persists across restarts (like Admin), should
-     * CustomerFrame look up a returning customer by idNumber instead of
-     * always constructing a brand-new User each session? This method
-     * exists either way - whether it gets used is a GUI-flow decision,
-     * not a code one.
+     * Kept for symmetry/possible future use - CustomerFrame no longer
+     * calls this directly (login now goes by name, see findUserByName()
+     * below), but it's still correct and still findable if a login-by-ID
+     * flow is ever needed again.
      * @param idNumber the ID number to search for
      * @return the matching User, or null if no user has that ID number
      */
     public User findUserByIdNumber(String idNumber) {
         for (User user : userList) {
             if (user.getIDNumber().equals(idNumber)) {
+                return user;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * New: CustomerFrame's actual login lookup now goes through this -
+     * a returning customer only has to type their name, never their
+     * auto-generated ID. Case-insensitive, trimmed, first match wins.
+     *
+     * Known, accepted limitation: names aren't guaranteed unique. Two
+     * different customers who register with the exact same name will
+     * collide here - the first one found "owns" that name from then on.
+     * Deliberate simplification given the project timeline; a production
+     * system would need a stronger identity check (e.g. contact number
+     * or a proper login/password) to fully solve this.
+     * @param name the name to search for
+     * @return the first matching User, or null if no user has that name
+     */
+    public User findUserByName(String name) {
+        for (User user : userList) {
+            if (user.getName().equalsIgnoreCase(name)) {
                 return user;
             }
         }
@@ -201,7 +228,6 @@ public class VehicleServiceBookingSystem {
         return total;
     }
     
-    
     private Vehicle findVehicleById(String vehicleId) {
         for (Vehicle vehicle : vehicleList) {
             if (vehicle.getVehicleID().equals(vehicleId)) {
@@ -209,7 +235,5 @@ public class VehicleServiceBookingSystem {
             }
         }
         return null;
-    }
-    
-    
+    }   
 }

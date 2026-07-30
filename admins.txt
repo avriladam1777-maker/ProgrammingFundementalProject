@@ -1,3 +1,3 @@
 MAIN-ADMIN|mainadmin|changeme123|true|true
-a68c816c-41df-4172-96ee-b1f68efb2f8b|Ishrak|123|false|false
-0845db6d-09af-4450-9f2b-305da8f3bcf5|Avril|1234|false|false
+a68c816c-41df-4172-96ee-b1f68efb2f8b|Ishrak|123|false|true
+0845db6d-09af-4450-9f2b-305da8f3bcf5|Avril|1234|false|true

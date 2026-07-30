@@ -3,11 +3,13 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.mycompany.groupassignment;
-
+ 
 /**
+ * «boundary» CustomerFrame
  *
  * @author User
  */
+ 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -63,37 +65,43 @@ public class CustomerFrame extends JFrame {
  
     // ---------------------------- Login / registration ----------------------------
  
-    // Decision locked in: look up returning customers by ID via
-    // findUserByIdNumber() rather than always creating a new User per session.
+    // Decision locked in (updated): customers log in by NAME, not by ID.
+    // The idNumber field still exists on User and is still generated at
+    // registration - FileManager still needs a stable key to persist
+    // bookings against - but it's now purely internal. The customer is
+    // never shown it and never asked for it again after the first visit.
     private User resolveCurrentUser() {
-        String idNumber = JOptionPane.showInputDialog(this,
-                "Enter your ID number (leave blank if you're a new customer):",
-                "Customer Login", JOptionPane.QUESTION_MESSAGE);
+        String name = JOptionPane.showInputDialog(this,
+                "Enter your name:", "Customer Login", JOptionPane.QUESTION_MESSAGE);
  
-        if (idNumber != null && !idNumber.trim().isEmpty()) {
-            User existing = system.findUserByIdNumber(idNumber.trim());
+        if (name != null && !name.trim().isEmpty()) {
+            User existing = system.findUserByName(name.trim());
             if (existing != null) {
                 JOptionPane.showMessageDialog(this, "Welcome back, " + existing.getName() + "!");
                 return existing;
             }
         }
  
-        // No match on file (or they left it blank) - treat as a new customer.
-        return registerNewUser(idNumber);
+        // No matching name on file (or they left it blank) - treat as a new customer.
+        return registerNewUser(name);
     }
  
-    private User registerNewUser(String enteredId) {
-        String name = JOptionPane.showInputDialog(this, "Enter your name:");
+    private User registerNewUser(String enteredName) {
+        // Re-prompt only if they left the name blank the first time -
+        // a name is required either way, returning or brand new.
+        String name = (enteredName != null && !enteredName.trim().isEmpty())
+                ? enteredName.trim()
+                : JOptionPane.showInputDialog(this, "Enter your name:");
+ 
         String contact = JOptionPane.showInputDialog(this, "Enter your contact number:");
         String email = JOptionPane.showInputDialog(this, "Enter your email:");
         int age = readAge();
  
-        // Reuse the ID they typed if it just wasn't on file yet; otherwise
-        // generate one - same UUID scheme Booking.bookingToken and
-        // Announcement.messageId already use.
-        String idNumber = (enteredId != null && !enteredId.trim().isEmpty())
-                ? enteredId.trim()
-                : UUID.randomUUID().toString();
+        // ID is now generated every time and never shown to the customer -
+        // findUserByName() is the only thing that needs to find this record
+        // again later, so there's no reason to ask the customer for it or
+        // let them supply their own.
+        String idNumber = UUID.randomUUID().toString();
  
         User newUser = new User(name, idNumber, age, contact, email);
         system.registerUser(newUser);
@@ -118,8 +126,8 @@ public class CustomerFrame extends JFrame {
     private void initComponents() {
         setLayout(new BorderLayout(8, 8));
  
-        welcomeLabel = new JLabel("Logged in as: " + currentUser.getName()
-                + "  (ID: " + currentUser.getIDNumber() + ")");
+        // ID number is now purely internal - no reason to show it here.
+        welcomeLabel = new JLabel("Logged in as: " + currentUser.getName());
         welcomeLabel.setBorder(BorderFactory.createEmptyBorder(6, 10, 0, 10));
         add(welcomeLabel, BorderLayout.PAGE_START);
  
